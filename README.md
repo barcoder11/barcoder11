@@ -1,4 +1,4 @@
-# Hi, I'm Sangay 👋
+# Hi, I'm Sangay  
 
 🎓 Computer Science student at FLCC (Class of 2027)  
 💻 Learning Java, Python, and Web Development  
