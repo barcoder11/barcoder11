@@ -1,16 +1,25 @@
-## Hi there 👋
+# Hi, I'm Sangay 👋
 
-<!--
-**barcoder11/barcoder11** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
+🎓 Computer Science student at FLCC (Class of 2027)  
+💻 Learning Java, Python, and Web Development  
+🚀 Building projects like [CoinMachine](https://github.com/barcoder11/CoinMachine) and productivity tools  
+📈 Interested in AI, business development, and logistics tech  
 
-Here are some ideas to get you started:
+---
 
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
--->
+### 🔧 Skills
+- Programming: Java, Javascript (beginner)
+- Tools: Git, GitHub, Airtable, 
+- Interests: AI, Databases, Productivity Frameworks
+
+---
+
+### 📂 Featured Projects
+- [CoinMachine](https://github.com/barcoder11/CoinMachine) – Simulates a coin-counting machine with fees and receipts.  
+- [Circles](https://github.com/barcoder11/Circles) – Calculates area and circumference of circles.  
+- More coming soon 🚀  
+
+---
+
+📫 **Contact:** [LinkedIn](https://www.linkedin.com/in/sangay-pemba-b91426372?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=ios_app)|
+                [Email Me](Sangaypemba@yahoo.com)
