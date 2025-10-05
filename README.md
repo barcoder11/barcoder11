@@ -15,9 +15,9 @@
 ---
 
 ### 📂 Featured Projects
-- [CoinMachine](https://github.com/barcoder11/CoinMachine) – Simulates a coin-counting machine with fees and receipts.  
-- [Circles](https://github.com/barcoder11/Circles) – Calculates area and circumference of circles.  
-- More coming soon 🚀  
+- [YouVsComputer](https://github.com/barcoder11/YouVsComputer) – Guessing game, displays amount of tries. Fun party game,raffle.
+- [CoinToss](https://github.com/barcoder11/CoinToss) – The Program gets user input then stimulates fipping a coin and after reports if the guess was correct.
+  
 
 ---
 
