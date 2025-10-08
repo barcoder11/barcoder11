@@ -2,7 +2,7 @@
 
 🎓 Computer Science student at FLCC (Class of 2027)  
 💻 Learning Java, Python, and Web Development  
-🚀 Building projects like [CoinMachine](https://github.com/barcoder11/CoinMachine) and productivity tools  
+🚀 Building projects like [CoinMachine](https://github.com/barcoder11/CoinMachine) and  [Rpg](https://github.com/barcoder11/Rpg1)
 📈 Interested in AI, business development, and logistics tech  
 
 ---
