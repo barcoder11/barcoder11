@@ -18,8 +18,8 @@ project** (none connected yet).
 | `next build` (production, with and without Supabase configured)        | ✅ success                    |
 | Migrations + seed on a clean database · `setup.sql` matches migrations | ✅ applied · ✅ in sync       |
 | `npm audit --omit=dev` (production dependencies)                       | ✅ 0 vulnerabilities          |
-| Unit tests (`src/**/*.test.ts`)                                        | ✅ 37 / 37                    |
-| DB integration tests (`tests/db`, real API + RLS + Storage)            | ✅ 44 / 44                    |
+| Unit tests (`src/**/*.test.ts`)                                        | ✅ 41 / 41                    |
+| DB integration tests (`tests/db`, real API + RLS + Storage)            | ✅ 46 / 46                    |
 | Playwright E2E (`tests/e2e`, 360 px phone viewport)                    | ✅ 19 / 19                    |
 | Automated WCAG 2.2 AA audit (axe) on 21 public, game and admin screens | ✅ no serious/critical issues |
 | Strict Content-Security-Policy (E2E listens for violations)            | ✅ none                       |
@@ -75,4 +75,7 @@ project** (none connected yet).
 - Fixed: the waitlist "delete my email" page confirmed deletions that hadn't happened (used
   link or failed call); it now reports the real outcome.
 - Performance: fewer sequential database calls per page (signed-in pages ~50 ms faster with
-  realistic latency), analytics writes deferred until after the response.
+  realistic latency), analytics writes deferred until after the response, public pages cached
+  per content version (a landing view costs one tiny query), uploaded art resized per device
+  (an 8 MB PNG reaches a phone as ~16–36 KB).
+- The not-yet-configured site (before Supabase is connected) serves every page without errors.
