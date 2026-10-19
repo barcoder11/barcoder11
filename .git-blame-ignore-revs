@@ -1,0 +1,3 @@
+# Formatting-only commits (GitHub skips these in blame views)
+# Format codebase with Prettier
+a10c3e8df924f96a7a1a7bfa428b482f4babb023
