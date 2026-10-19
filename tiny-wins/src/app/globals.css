@@ -1,26 +1,212 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Tiny Wins design tokens.
+ * Brand: sage #D7E9DB · forest #397A69 · honey #F4D6A6 · bark #7A4D38
+ * Pip's hoodie teal is used for highlights.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --radius: 1.25rem;
+
+  --sage: #d7e9db;
+  --forest: #397a69;
+  --forest-deep: #2a5c4f;
+  --honey: #f4d6a6;
+  --honey-deep: #e8b86a;
+  --bark: #7a4d38;
+  --bark-deep: #5b3726;
+  --hoodie: #2aa39c;
+  --cream: #fbf7ef;
+
+  --background: #f7f3ea;
+  --foreground: #2f2a24;
+  --card: #fffdf8;
+  --card-foreground: #2f2a24;
+  --popover: #fffdf8;
+  --popover-foreground: #2f2a24;
+  --primary: #397a69;
+  --primary-foreground: #fffdf8;
+  --secondary: #d7e9db;
+  --secondary-foreground: #24493f;
+  --muted: #efe9dc;
+  --muted-foreground: #6e6558;
+  --accent: #f4d6a6;
+  --accent-foreground: #5b3726;
+  --destructive: #c4513f;
+  --destructive-foreground: #fffdf8;
+  --border: #e6dece;
+  --input: #e2d9c7;
+  --ring: #397a69;
+
+  --shadow-color: 63 44 25;
+  --scene-sky-top: #bfe3dc;
+  --scene-sky-bottom: #f7ead2;
+}
+
+.dark {
+  --background: #111b18;
+  --foreground: #efeadf;
+  --card: #1a2723;
+  --card-foreground: #efeadf;
+  --popover: #1a2723;
+  --popover-foreground: #efeadf;
+  --primary: #6fbfa8;
+  --primary-foreground: #0e1a16;
+  --secondary: #24403a;
+  --secondary-foreground: #d7e9db;
+  --muted: #22302c;
+  --muted-foreground: #a9b5ae;
+  --accent: #5a4528;
+  --accent-foreground: #f4d6a6;
+  --destructive: #e07563;
+  --destructive-foreground: #1a0f0b;
+  --border: #2c3b36;
+  --input: #34453f;
+  --ring: #6fbfa8;
+
+  --shadow-color: 0 0 0;
+  --scene-sky-top: #1b2d44;
+  --scene-sky-bottom: #3c3550;
 }
 
 @theme inline {
+  --font-sans: var(--font-nunito), ui-rounded, system-ui, sans-serif;
+  --font-display: var(--font-fredoka), var(--font-nunito), ui-rounded, system-ui, sans-serif;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  --color-sage: var(--sage);
+  --color-forest: var(--forest);
+  --color-forest-deep: var(--forest-deep);
+  --color-honey: var(--honey);
+  --color-honey-deep: var(--honey-deep);
+  --color-bark: var(--bark);
+  --color-bark-deep: var(--bark-deep);
+  --color-hoodie: var(--hoodie);
+  --color-cream: var(--cream);
+
+  --radius-sm: calc(var(--radius) - 8px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 12px);
+
+  --shadow-soft: 0 1px 2px rgb(var(--shadow-color) / 0.06), 0 8px 24px -8px rgb(var(--shadow-color) / 0.18);
+  --shadow-lift: 0 2px 4px rgb(var(--shadow-color) / 0.08), 0 18px 40px -12px rgb(var(--shadow-color) / 0.28);
+
+  --animate-float: float 5s ease-in-out infinite;
+  --animate-sway: sway 6s ease-in-out infinite;
+  --animate-twinkle: twinkle 2.6s ease-in-out infinite;
+  --animate-breathe: breathe 3.4s ease-in-out infinite;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  @keyframes sway {
+    0%, 100% { transform: rotate(-2deg); }
+    50% { transform: rotate(2deg); }
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.35; transform: scale(0.9); }
+    50% { opacity: 1; transform: scale(1.1); }
+  }
+  @keyframes breathe {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(1.025); }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "ss01";
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-fredoka), var(--font-nunito), ui-rounded, system-ui, sans-serif;
+    letter-spacing: -0.01em;
+  }
+  :focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+  }
 }
+
+/* Soft paper grain used on cozy surfaces. */
+.bg-grain {
+  background-image: radial-gradient(rgb(var(--shadow-color) / 0.035) 1px, transparent 1px);
+  background-size: 6px 6px;
+}
+
+/* Chunky "pressable" game buttons and cards. */
+.press-3d {
+  box-shadow: 0 4px 0 0 rgb(var(--shadow-color) / 0.22);
+  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+}
+.press-3d:hover { filter: brightness(1.04); }
+.press-3d:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 0 rgb(var(--shadow-color) / 0.22);
+}
+
+.safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 0.5rem); }
+
+/* Reduced motion: honor the OS setting and the in-app toggle. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+html[data-reduce-motion="true"] *,
+html[data-reduce-motion="true"] *::before,
+html[data-reduce-motion="true"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Treehouse ambient animation (disabled by reduced-motion rules above). */
+.tw-twinkle { animation: var(--animate-twinkle); transform-box: fill-box; transform-origin: center; }
+.tw-flicker { animation: flicker 1.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center bottom; }
+.tw-firefly { animation: firefly 5s ease-in-out infinite; }
+.tw-drift { animation: drift 18s ease-in-out infinite alternate; }
+@keyframes flicker { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(0.9, 1.12); } }
+@keyframes firefly {
+  0%, 100% { transform: translate(0, 0); opacity: 0.2; }
+  30% { opacity: 1; }
+  50% { transform: translate(10px, -14px); opacity: 0.9; }
+  80% { transform: translate(-6px, -4px); opacity: 0.4; }
+}
+@keyframes drift { from { transform: translateX(-10px); } to { transform: translateX(24px); } }

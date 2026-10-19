@@ -691,6 +691,18 @@ begin
 end;
 $$;
 
+-- Removes an entry using the token from any waitlist email (unsubscribe).
+create or replace function public.waitlist_leave(p_token_hash text)
+returns jsonb
+language plpgsql
+set search_path = ''
+as $$
+begin
+  delete from public.waitlist where confirm_token_hash = p_token_hash;
+  return jsonb_build_object('ok', found);
+end;
+$$;
+
 -- ---------------------------------------------------------------------------
 -- Permissions
 -- ---------------------------------------------------------------------------
@@ -718,5 +730,6 @@ to authenticated;
 grant execute on function
   public.hit_rate_limit(text, integer, integer),
   public.waitlist_join(text, text, text, text, text),
-  public.waitlist_confirm(text)
+  public.waitlist_confirm(text),
+  public.waitlist_leave(text)
 to service_role;

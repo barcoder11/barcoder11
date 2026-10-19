@@ -478,6 +478,16 @@ run("database", () => {
       expect(r.r).toEqual({ ok: false, reason: "expired" });
     });
 
+    it("lets people leave with their email token", async () => {
+      await asService(`select public.waitlist_join('bye@example.com', 'bye-token', null, null, null)`);
+      const [r] = await asService<{ r: Json }>(`select public.waitlist_leave('bye-token') as r`);
+      expect(r.r).toEqual({ ok: true });
+      const rows = await admin(`select 1 from public.waitlist where email = 'bye@example.com'`);
+      expect(rows).toHaveLength(0);
+      const [again] = await asService<{ r: Json }>(`select public.waitlist_leave('bye-token') as r`);
+      expect(again.r).toEqual({ ok: false });
+    });
+
     it("rate limits per bucket", async () => {
       const hit = () => asService<{ r: boolean }>(`select public.hit_rate_limit('ip:test', 3, 3600) as r`).then((r) => r[0].r);
       const results = [await hit(), await hit(), await hit(), await hit()];
