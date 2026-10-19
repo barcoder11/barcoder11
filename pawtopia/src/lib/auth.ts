@@ -12,14 +12,17 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
   if (error || !data?.claims?.sub) return null;
-  return { id: data.claims.sub, email: (data.claims.email as string | undefined) ?? null };
+  return { id: data.claims.sub, email: data.claims.email ?? null };
 });
 
 export const getProfile = cache(async (): Promise<Profile | null> => {
   const user = await getSessionUser();
   if (!user) return null;
   const supabase = await createClient();
-  return one<Profile>(await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle(), "profile");
+  return one(
+    await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle(),
+    "profile",
+  ) as Profile | null;
 });
 
 export async function requireUser(next: string) {

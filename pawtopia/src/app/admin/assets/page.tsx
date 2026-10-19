@@ -4,14 +4,11 @@ import { adminInput } from "@/components/admin/fields";
 import { Card } from "@/components/ui";
 import { deleteAsset, setAssetActive, updateAssetText } from "../actions";
 import { createClient } from "@/lib/supabase/server";
-import type { AnimalAsset } from "@/lib/types";
 import { many } from "@/lib/data/db";
-
-type AssetRow = AnimalAsset & { animals: { id: string; name: string; slug: string } | null };
 
 export default async function AdminAssets() {
   const supabase = await createClient();
-  const data = many<AssetRow>(
+  const data = many(
     await supabase
       .from("animal_assets")
       .select("*, animals(id, name, slug)")

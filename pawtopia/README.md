@@ -79,6 +79,7 @@ Without Supabase variables the app shows a setup screen instead of crashing.
 | `npm run test:db`                    | Database/RLS/economy integration tests (needs a running stack)     |
 | `npm run test:e2e`                   | Playwright end-to-end tests (needs app + stack)                    |
 | `npm run db:bundle` · `db:check`     | Regenerate · verify `supabase/setup.sql` after changing migrations |
+| `npm run db:types`                   | Regenerate `src/lib/database.types.ts` after changing migrations   |
 | `npm run admin:grant -- <email>`     | Grant admin/editor role                                            |
 
 Every push runs all checks and test suites in GitHub Actions

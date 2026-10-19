@@ -4,19 +4,9 @@ import { ButtonLink, Card } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { many } from "@/lib/data/db";
 
-type Row = {
-  id: string;
-  slug: string;
-  title: string;
-  status: string;
-  season: number | null;
-  episode: number | null;
-  animals: { name: string } | null;
-};
-
 export default async function AdminRescues() {
   const supabase = await createClient();
-  const rows = many<Row>(
+  const rows = many(
     await supabase
       .from("rescue_stories")
       .select("id, slug, title, status, season, episode, animals(name)")

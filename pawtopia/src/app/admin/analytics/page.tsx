@@ -3,18 +3,6 @@ import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { daysAgoIso } from "@/lib/time";
 
-type FunnelRow = {
-  rescue_title: string | null;
-  source: string;
-  landing_views: number;
-  cta_clicks: number;
-  signups: number;
-  adoptions: number;
-  first_cares: number;
-  return_d1: number;
-  return_d7: number;
-};
-
 const RANGES: Record<string, number> = { "7": 7, "30": 30, "90": 90 };
 
 export default async function AdminAnalytics({ searchParams }: PageProps<"/admin/analytics">) {
@@ -24,7 +12,7 @@ export default async function AdminAnalytics({ searchParams }: PageProps<"/admin
   const since = daysAgoIso(days);
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("admin_funnel", { p_since: since });
-  const rows = (data ?? []) as FunnelRow[];
+  const rows = data ?? [];
   const pct = (a: number, b: number) => (b > 0 ? `${Math.round((a / b) * 100)}%` : "—");
 
   return (

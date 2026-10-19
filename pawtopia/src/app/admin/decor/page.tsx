@@ -13,7 +13,7 @@ const ART_KEYS = ["blanket", "bowl", "flowers", "ball", "lantern", "bunting", "t
 export default async function AdminDecor() {
   await requireAdmin("/admin/decor");
   const supabase = await createClient();
-  const items = many<Decor>(await supabase.from("decor_catalog").select("*").order("sort_order"), "admin decor");
+  const items = many(await supabase.from("decor_catalog").select("*").order("sort_order"), "admin decor") as Decor[];
 
   return (
     <div className="grid gap-5">

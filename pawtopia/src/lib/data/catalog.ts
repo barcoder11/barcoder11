@@ -9,6 +9,7 @@ import type { Animal, ChapterOutline, Decor, Economy, Habitat, LaunchSettings, R
 // visibility: visitors see published/coming-soon content, editors also see drafts.
 
 const ANIMAL_FIELDS = "*, animal_assets(*)";
+const RESCUE_WITH_ANIMAL = `*, animals(${ANIMAL_FIELDS})` as const;
 
 export const getLaunchSettings = cache(async (): Promise<LaunchSettings> => {
   const supabase = await createClient();
@@ -52,12 +53,12 @@ export const getAnimalBySlug = cache(async (slug: string): Promise<Animal | null
 export const getRescueBySlug = cache(async (slug: string) => {
   const supabase = await createClient();
   const row = one(
-    await supabase.from("rescue_stories").select(`*, animals(${ANIMAL_FIELDS})`).eq("slug", slug).maybeSingle(),
+    await supabase.from("rescue_stories").select(RESCUE_WITH_ANIMAL).eq("slug", slug).maybeSingle(),
     "rescue by slug",
   );
   if (!row) return null;
-  const { animals, ...rescue } = row as RescueStory & { animals: Animal };
-  return { rescue: rescue as RescueStory, animal: animals };
+  const { animals, ...rescue } = row;
+  return { rescue, animal: animals as Animal };
 });
 
 export const listRescuesForAnimal = cache(async (animalId: string): Promise<RescueStory[]> => {
@@ -68,14 +69,14 @@ export const listRescuesForAnimal = cache(async (animalId: string): Promise<Resc
     .eq("animal_id", animalId)
     .eq("status", "published")
     .order("published_at", { ascending: false });
-  return many(result, "rescues for animal") as RescueStory[];
+  return many(result, "rescues for animal");
 });
 
 export const listPublishedRescues = cache(async () => {
   const supabase = await createClient();
   const result = await supabase
     .from("rescue_stories")
-    .select(`*, animals(${ANIMAL_FIELDS})`)
+    .select(RESCUE_WITH_ANIMAL)
     .eq("status", "published")
     .order("published_at", { ascending: false })
     .limit(12);
@@ -84,10 +85,7 @@ export const listPublishedRescues = cache(async () => {
 
 export const getChapterOutline = cache(async (animalId: string): Promise<ChapterOutline[]> => {
   const supabase = await createClient();
-  return many(
-    await supabase.rpc("animal_chapter_outline", { p_animal_id: animalId }),
-    "chapter outline",
-  ) as ChapterOutline[];
+  return many(await supabase.rpc("animal_chapter_outline", { p_animal_id: animalId }), "chapter outline");
 });
 
 export const listDecor = cache(async (): Promise<Decor[]> => {

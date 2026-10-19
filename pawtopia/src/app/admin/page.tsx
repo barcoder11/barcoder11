@@ -21,22 +21,19 @@ export default async function AdminOverview() {
       .order("created_at", { ascending: false })
       .limit(12),
   ]);
-  const o = (one(overviewResult, "admin overview") ?? {}) as Record<string, number>;
-  const animals = many<{ slug: string; name: string; status: string }>(animalsResult, "animals");
+  const o = one(overviewResult, "admin overview");
+  const animals = many(animalsResult, "animals");
   // Audit rows are admin-only (RLS returns none to editors).
-  const audit = many<{ id: string; action: string; entity_type: string; entity_id: string | null; created_at: string }>(
-    auditResult,
-    "audit log",
-  );
+  const audit = many(auditResult, "audit log");
   const stats = [
-    ["Players", o.players],
-    ["Adoptions", o.adoptions],
-    ["Care actions (24h)", o.care_24h],
-    ["Landing views (7d)", o.landing_views_7d],
-    ["Waitlist verified", o.waitlist_verified],
-    ["Waitlist pending", o.waitlist_pending],
-    ["Published animals", o.animals_published],
-    ["Draft / coming soon", o.animals_draft],
+    ["Players", o?.players],
+    ["Adoptions", o?.adoptions],
+    ["Care actions (24h)", o?.care_24h],
+    ["Landing views (7d)", o?.landing_views_7d],
+    ["Waitlist verified", o?.waitlist_verified],
+    ["Waitlist pending", o?.waitlist_pending],
+    ["Published animals", o?.animals_published],
+    ["Draft / coming soon", o?.animals_draft],
   ];
 
   return (
@@ -55,7 +52,7 @@ export default async function AdminOverview() {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {stats.map(([label, value]) => (
-          <Card key={label as string} className="p-4">
+          <Card key={label} className="p-4">
             <p className="text-xs font-extrabold uppercase tracking-wider text-ink-soft">{label}</p>
             <p className="font-display text-3xl font-bold">{value ?? 0}</p>
           </Card>

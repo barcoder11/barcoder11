@@ -14,7 +14,7 @@ export const getWallet = cache(async () => {
   if (!user) return 0;
   const supabase = await createClient();
   const row = one(await supabase.from("wallets").select("acorns").eq("user_id", user.id).maybeSingle(), "wallet");
-  return (row?.acorns as number | undefined) ?? 0;
+  return row?.acorns ?? 0;
 });
 
 export const listAdoptions = cache(async (): Promise<UserAnimal[]> => {
@@ -51,7 +51,7 @@ export async function getMyAdoptionId(animalId: string): Promise<string | null> 
     await supabase.from("user_animals").select("id").eq("user_id", user.id).eq("animal_id", animalId).maybeSingle(),
     "adoption id",
   );
-  return (row?.id as string | undefined) ?? null;
+  return row?.id ?? null;
 }
 
 /** Latest time each care action was performed for this adoption (for cooldown rings). */
@@ -69,10 +69,7 @@ export async function getLastCareTimes(userAnimalId: string) {
     "recent care",
   );
   const last: Partial<Record<CareAction, string>> = {};
-  for (const row of rows) {
-    const t = row.action_type as CareAction;
-    if (!last[t]) last[t] = row.performed_at as string;
-  }
+  for (const row of rows) last[row.action_type] ??= row.performed_at;
   return last;
 }
 
@@ -91,10 +88,8 @@ export async function getAcornActivitiesToday(timezone: string): Promise<CareAct
       .gt("rewarded_acorns", 0),
     "acorn activities today",
   );
-  return [...new Set(rows.map((r) => r.action_type as CareAction))];
+  return [...new Set(rows.map((r) => r.action_type))];
 }
-
-type UnlockRow = { user_animal_id: string; unlocked_at: string; story_chapters: Chapter | null };
 
 export const getUnlockedChapters = cache(
   async (userAnimalId?: string): Promise<(Chapter & { user_animal_id: string; unlocked_at: string })[]> => {
@@ -107,15 +102,12 @@ export const getUnlockedChapters = cache(
       .eq("user_id", user.id)
       .order("unlocked_at");
     if (userAnimalId) query = query.eq("user_animal_id", userAnimalId);
-    const rows = many(await query, "unlocked chapters") as unknown as UnlockRow[];
-    return rows
-      .filter((r) => r.story_chapters)
-      .map((r) => ({ ...(r.story_chapters as Chapter), user_animal_id: r.user_animal_id, unlocked_at: r.unlocked_at }));
+    const rows = many(await query, "unlocked chapters");
+    return rows.flatMap((r) =>
+      r.story_chapters ? [{ ...r.story_chapters, user_animal_id: r.user_animal_id, unlocked_at: r.unlocked_at }] : [],
+    );
   },
 );
-
-type PlacementRow = { slot_id: string; habitat_slug: string; decor_catalog: { slug: string } | null };
-type InventoryRow = { source: string; acquired_at: string; decor_catalog: Decor | null };
 
 export const getSanctuary = cache(async () => {
   const user = await getSessionUser();
@@ -127,18 +119,18 @@ export const getSanctuary = cache(async () => {
     supabase.from("user_inventory").select("acquired_at, source, decor_catalog(*)").eq("user_id", user.id),
   ]);
   const sanctuary = one(sanctuaryResult, "sanctuary");
-  const placements = many(placementsResult, "placements") as unknown as PlacementRow[];
-  const inventory = many(inventoryResult, "inventory") as unknown as InventoryRow[];
-  const habitatSlug = (sanctuary?.habitat_slug as string | undefined) ?? "forest-glade";
+  const placements = many(placementsResult, "placements");
+  const inventory = many(inventoryResult, "inventory");
+  const habitatSlug = sanctuary?.habitat_slug ?? "forest-glade";
   return {
-    name: (sanctuary?.name as string | undefined) ?? "My Sanctuary",
+    name: sanctuary?.name ?? "My Sanctuary",
     habitatSlug,
-    placements: placements
-      .filter((p) => p.habitat_slug === habitatSlug && p.decor_catalog)
-      .map((p) => ({ slot_id: p.slot_id, decor_slug: p.decor_catalog!.slug })) as Placement[],
+    placements: placements.flatMap((p): Placement[] =>
+      p.habitat_slug === habitatSlug && p.decor_catalog
+        ? [{ slot_id: p.slot_id, decor_slug: p.decor_catalog.slug }]
+        : [],
+    ),
     // Items whose catalog entry was disabled are hidden by RLS; skip them.
-    inventory: inventory
-      .filter((i) => i.decor_catalog)
-      .map((i) => ({ ...(i.decor_catalog as Decor), source: i.source })),
+    inventory: inventory.flatMap((i) => (i.decor_catalog ? [{ ...(i.decor_catalog as Decor), source: i.source }] : [])),
   };
 });

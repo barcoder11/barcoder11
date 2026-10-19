@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { DecorArt } from "@/components/art/DecorArt";
-import { buyDecor, type ShopResult } from "@/app/app/actions";
+import { buyDecor, type PurchaseResponse } from "@/app/app/actions";
 import { AcornIcon, Button, Notice } from "@/components/ui";
 import { tryAction } from "@/lib/safe-action";
 import { useGameState } from "./GameState";
@@ -23,10 +23,10 @@ export function ShopGrid({ items, owned }: { items: Decor[]; owned: string[] }) 
     setBuying(item.slug);
     const key = crypto.randomUUID();
     // On a network hiccup, retry once with the same key (idempotent: never charges twice).
-    const res: ShopResult = (await tryAction(() => buyDecor(item.slug, key))) ??
+    const res: PurchaseResponse = (await tryAction(() => buyDecor(item.slug, key))) ??
       (await tryAction(() => buyDecor(item.slug, key))) ?? { status: "error" };
     setBuying(null);
-    if (typeof res.balance === "number") setBalance(res.balance);
+    if ("balance" in res && typeof res.balance === "number") setBalance(res.balance);
     if (res.status === "purchased" || res.status === "replay") {
       setOwned((s) => new Set(s).add(item.slug));
       setMessage({ tone: "success", text: `${item.name} is yours!`, slug: item.slug });

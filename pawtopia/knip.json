@@ -1,5 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": ["scripts/*.mjs", "tests/local-stack/*.mjs", "tests/stubs/*.ts"],
-  "project": ["src/**/*.{ts,tsx,css}", "tests/**/*.ts", "scripts/**/*.mjs"]
+  "project": ["src/**/*.{ts,tsx,css}", "tests/**/*.ts", "scripts/**/*.mjs"],
+  "ignore": ["src/lib/database.types.ts"]
 }

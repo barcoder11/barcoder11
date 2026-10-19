@@ -9,15 +9,6 @@ import { createClient } from "@/lib/supabase/server";
 
 const PAGE_SIZE = 50;
 
-type Entry = {
-  id: string;
-  email: string;
-  status: string;
-  promotional_opt_in: boolean;
-  created_at: string;
-  verified_at: string | null;
-};
-
 export default async function AdminWaitlist({ searchParams }: PageProps<"/admin/waitlist">) {
   await requireAdmin("/admin/waitlist");
   const sp = await searchParams;
@@ -33,7 +24,7 @@ export default async function AdminWaitlist({ searchParams }: PageProps<"/admin/
   // Escape LIKE wildcards so the search is literal.
   if (q) query = query.ilike("normalized_email", `%${q.toLowerCase().replace(/[\\%_]/g, (m) => `\\${m}`)}%`);
   const result = await query;
-  const entries = many<Entry>(result, "waitlist");
+  const entries = many(result, "waitlist");
   const total = result.count ?? entries.length;
 
   return (

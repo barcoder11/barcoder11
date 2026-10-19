@@ -50,6 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
+      # Keep in step with CLI_VERSION in pawtopia/scripts/gen-db-types.mjs.
       SUPABASE: npx --yes supabase@2.121.0
       PAWTOPIA_DB_TESTS: "1"
       PAWTOPIA_STORAGE_TESTS: "1"
@@ -86,6 +87,8 @@ jobs:
             echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
           } >> "$GITHUB_ENV"
 
+      - name: Generated database types match the migrations
+        run: npm run db:types -- --check
       - name: Database integration tests
         run: npm run test:db
 

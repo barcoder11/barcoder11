@@ -19,7 +19,7 @@ import {
 import { assetMap } from "@/lib/animals";
 import { PHASES } from "@/lib/game";
 import { createClient } from "@/lib/supabase/server";
-import type { Animal, AnimalAsset, Chapter, RescueStory } from "@/lib/types";
+import type { Animal, AnimalAsset, Chapter } from "@/lib/types";
 import { many, one } from "@/lib/data/db";
 
 const REQUIRED_STATES = ["idle", "happy", "playing", "resting", "snacking"] as const;
@@ -34,11 +34,11 @@ export default async function EditAnimal({ params, searchParams }: PageProps<"/a
     supabase.from("story_chapters").select("*").eq("animal_id", id).order("ordinal"),
     supabase.from("rescue_stories").select("id, slug, title, status").eq("animal_id", id),
   ]);
-  const animal = one<Animal>(animalResult, "admin animal");
+  const animal = one(animalResult, "admin animal") as Animal | null;
   if (!animal) notFound();
-  const habitats = many<{ slug: string; name: string }>(habitatsResult, "habitats");
-  const chapters = many<Chapter>(chaptersResult, "chapters");
-  const rescues = many<RescueStory>(rescuesResult, "animal rescues");
+  const habitats = many(habitatsResult, "habitats");
+  const chapters = many(chaptersResult, "chapters");
+  const rescues = many(rescuesResult, "animal rescues");
   const assets = (animal.animal_assets ?? []) as AnimalAsset[];
   const active = assetMap(animal);
   const missing = REQUIRED_STATES.filter((s) => !active[s]);

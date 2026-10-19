@@ -7,10 +7,7 @@ import { many } from "@/lib/data/db";
 
 export default async function NewAnimal() {
   const supabase = await createClient();
-  const habitats = many<{ slug: string; name: string }>(
-    await supabase.from("habitats").select("slug, name").order("name"),
-    "habitats",
-  );
+  const habitats = many(await supabase.from("habitats").select("slug, name").order("name"), "habitats");
   return (
     <div className="grid gap-4">
       <h1 className="font-display text-3xl font-bold">New animal</h1>

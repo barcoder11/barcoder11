@@ -52,7 +52,7 @@ export async function proxy(request: NextRequest) {
       },
     });
     const { data } = await supabase.auth.getClaims();
-    userId = (data?.claims?.sub as string | undefined) ?? null;
+    userId = data?.claims?.sub ?? null;
   }
 
   if (!userId && isProtected(pathname)) {

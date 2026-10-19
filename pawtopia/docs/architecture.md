@@ -149,6 +149,19 @@ All later events (adoption, first care, purchases, D1/D7 returns) are written
 server-side inside the game functions and carry the first-touch rescue/source, so
 `admin_funnel` can report per episode and platform without exposing user identities.
 
+## Typed database access
+
+Every Supabase client is created with a `Database` type, so table, column and function
+names, argument types and result shapes are checked at compile time.
+
+- `src/lib/database.types.ts` is generated from the migrated schema (`npm run db:types`);
+  CI regenerates it on a fresh database and fails if the committed file differs.
+- `src/lib/database.ts` adds what the generator can't know: which function arguments accept
+  NULL, and the exact jsonb each function returns (every `status` value is a typed union).
+- `src/lib/types.ts` builds the app's shapes from the generated rows, narrowing only jsonb
+  columns and CHECK-constrained text columns. Validation reuses the database enums
+  (`Constants`), so a new animation state or care action can't drift out of sync.
+
 ## Quality gates
 
 Every push runs `.github/workflows/pawtopia-ci.yml`:
@@ -157,7 +170,8 @@ Every push runs `.github/workflows/pawtopia-ci.yml`:
   dependencies), `setup.sql` drift check, `npm audit` of production dependencies, and a
   production build with no Supabase configured.
 - **integration** — starts the official local Supabase stack (`supabase start`, which
-  applies the migrations and seed), runs the database tests including Storage, builds and
+  applies the migrations and seed), checks the generated types are current, runs the
+  database tests including Storage, builds and
   starts the app, and runs the Playwright suite on a 360 px phone viewport (accessibility
   audits included).
 

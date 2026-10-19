@@ -44,7 +44,7 @@ export async function finishSignIn(supabase: SupabaseClient, requestedNext?: str
     (typeof meta.pt_ft === "string" ? decodeFirstTouch(meta.pt_ft) : null);
   await supabase.rpc("record_signup", { p_anonymous_id: isUuid(anon) ? anon : null, p_first_touch: touch });
 
-  if (claims?.sub && isBootstrapAdmin(claims.email as string | undefined)) {
+  if (claims?.sub && isBootstrapAdmin(claims.email)) {
     await createAdminClient()
       ?.from("app_roles")
       .upsert(

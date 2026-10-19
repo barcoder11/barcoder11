@@ -25,6 +25,6 @@ export async function GET(request: NextRequest) {
     log.error("maintenance failed", { code: error.code });
     return NextResponse.json({ ok: false }, { status: 500 });
   }
-  log.info("maintenance completed", data as Record<string, number>);
+  log.info("maintenance completed", data);
   return NextResponse.json({ ok: true, ...(data as object) });
 }

@@ -8,7 +8,7 @@ import { many } from "@/lib/data/db";
 export default async function NewRescue({ searchParams }: PageProps<"/admin/rescues/new">) {
   const sp = await searchParams;
   const supabase = await createClient();
-  const animals = many<{ id: string; name: string; status: string }>(
+  const animals = many(
     await supabase.from("animals").select("id, name, status").neq("status", "archived").order("sort_order"),
     "animals for rescue form",
   );

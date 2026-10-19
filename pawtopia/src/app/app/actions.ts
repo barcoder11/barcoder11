@@ -5,8 +5,15 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSessionUser } from "@/lib/auth";
+import { Constants } from "@/lib/database.types";
 import { log } from "@/lib/log";
-import type { CareAction, CareResult, Placement } from "@/lib/types";
+import type { CareResult, PlacementResult, PurchaseResult } from "@/lib/database";
+import type { CareAction } from "@/lib/types";
+
+/** What actions add on top of a function's own results: bad input, or the call itself failed. */
+type Failure = { status: "invalid_request" | "error" };
+export type CareResponse = CareResult | Failure;
+export type PurchaseResponse = PurchaseResult | Failure;
 
 /** Logs a failed database call (error code only) and returns the generic failure. */
 function failure(context: string, error: { code?: string }) {
@@ -17,7 +24,7 @@ function failure(context: string, error: { code?: string }) {
 const uuid = z.string().uuid();
 const careSchema = z.object({
   userAnimalId: uuid,
-  action: z.enum(["comfort", "snack", "play", "rest"]),
+  action: z.enum(Constants.public.Enums.care_action_type),
   key: uuid,
 });
 
@@ -25,7 +32,7 @@ const careSchema = z.object({
  * One care interaction. Rewards are computed entirely in the database from
  * server config; the idempotency key makes retries and double taps harmless.
  */
-export async function performCare(userAnimalId: string, action: CareAction, key: string): Promise<CareResult> {
+export async function performCare(userAnimalId: string, action: CareAction, key: string): Promise<CareResponse> {
   const parsed = careSchema.safeParse({ userAnimalId, action, key });
   if (!parsed.success) return { status: "invalid_request" };
   const supabase = await createClient();
@@ -35,12 +42,10 @@ export async function performCare(userAnimalId: string, action: CareAction, key:
     p_idempotency_key: parsed.data.key,
   });
   if (error) return failure("perform_care", error);
-  return data as CareResult;
+  return data;
 }
 
-export type ShopResult = { status: string; balance?: number; price?: number };
-
-export async function buyDecor(slug: string, key: string): Promise<ShopResult> {
+export async function buyDecor(slug: string, key: string): Promise<PurchaseResponse> {
   const parsed = z.object({ slug: z.string().regex(/^[a-z0-9-]{1,60}$/), key: uuid }).safeParse({ slug, key });
   if (!parsed.success) return { status: "invalid_request" };
   const supabase = await createClient();
@@ -50,12 +55,10 @@ export async function buyDecor(slug: string, key: string): Promise<ShopResult> {
   });
   if (error) return failure("purchase_decor", error);
   revalidatePath("/app/sanctuary");
-  return data as ShopResult;
+  return data;
 }
 
-type PlaceResult = { status: string; placements?: Placement[]; expected?: string };
-
-export async function placeDecor(slotId: string, slug: string): Promise<PlaceResult> {
+export async function placeDecor(slotId: string, slug: string): Promise<PlacementResult | Failure> {
   const parsed = z
     .object({ slotId: z.string().regex(/^[a-z0-9-]{1,40}$/), slug: z.string().regex(/^[a-z0-9-]{1,60}$/) })
     .safeParse({ slotId, slug });
@@ -66,15 +69,15 @@ export async function placeDecor(slotId: string, slug: string): Promise<PlaceRes
     p_decor_slug: parsed.data.slug,
   });
   if (error) return failure("place_decor", error);
-  return data as PlaceResult;
+  return data;
 }
 
-export async function removeDecor(slotId: string): Promise<PlaceResult> {
+export async function removeDecor(slotId: string): Promise<PlacementResult | Failure> {
   if (!/^[a-z0-9-]{1,40}$/.test(slotId)) return { status: "invalid_request" };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("remove_decor", { p_slot_id: slotId });
   if (error) return failure("remove_decor", error);
-  return data as PlaceResult;
+  return data;
 }
 
 export async function renameAdoption(userAnimalId: string, nickname: string) {
@@ -87,7 +90,7 @@ export async function renameAdoption(userAnimalId: string, nickname: string) {
   });
   if (error) return failure("rename_adoption", error);
   revalidatePath(`/app/animals/${parsed.data.id}`);
-  return data as { status: string; nickname?: string | null };
+  return data;
 }
 
 export async function renameSanctuary(name: string) {
@@ -97,7 +100,7 @@ export async function renameSanctuary(name: string) {
   const { data, error } = await supabase.rpc("rename_sanctuary", { p_name: parsed.data });
   if (error) return failure("rename_sanctuary", error);
   revalidatePath("/app/sanctuary");
-  return data as { status: string };
+  return data;
 }
 
 export type ProfileState = { status?: "ok" | "error"; message?: string };

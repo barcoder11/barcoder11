@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint --max-warnings=0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "knip": "knip",
@@ -18,7 +18,8 @@
     "stack:start": "bash tests/local-stack/start.sh",
     "stack:reset": "bash tests/local-stack/reset-db.sh",
     "db:bundle": "node scripts/bundle-sql.mjs",
-    "db:check": "node scripts/bundle-sql.mjs --check"
+    "db:check": "node scripts/bundle-sql.mjs --check",
+    "db:types": "node scripts/gen-db-types.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

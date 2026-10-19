@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimalArt, PlaceholderBadge } from "@/components/art/AnimalArt";
 import type { PetState } from "@/components/art/Critter";
-import { performCare, renameAdoption } from "@/app/app/actions";
+import { performCare, renameAdoption, type CareResponse } from "@/app/app/actions";
 import { Modal as Dialog } from "@/components/Modal";
 import { buttonClass } from "@/components/ui";
 import { useGameState } from "./GameState";
@@ -15,7 +15,6 @@ import type {
   AnimalAsset,
   AssetState,
   CareAction,
-  CareResult,
   ChapterOutline,
   Decor,
   Economy,
@@ -131,7 +130,7 @@ export function CareRoom(props: {
     setPet(STATE_FOR[action]);
     const key = crypto.randomUUID();
     // On a network hiccup, retry once with the same key (idempotent: never double-rewards).
-    const result: CareResult = (await tryAction(() => performCare(props.adoption.id, action, key))) ??
+    const result: CareResponse = (await tryAction(() => performCare(props.adoption.id, action, key))) ??
       (await tryAction(() => performCare(props.adoption.id, action, key))) ?? { status: "error" };
     setBusy(null);
 

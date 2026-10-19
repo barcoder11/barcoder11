@@ -53,7 +53,7 @@ export function SanctuaryEditor(props: {
     setPending(false);
     if (!res) {
       setMessage({ tone: "error", text: OFFLINE_MESSAGE });
-    } else if (res.placements) {
+    } else if ("placements" in res && res.placements) {
       setPlacements(res.placements);
       setMessage({
         tone: "success",

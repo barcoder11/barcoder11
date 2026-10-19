@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getIsAdmin, getIsEditor, getSessionUser } from "@/lib/auth";
+import { Constants } from "@/lib/database.types";
 import { MEDIA_BUCKET } from "@/lib/env";
-import type { AssetState } from "@/lib/types";
 
 type FormState = { ok?: boolean; error?: string; message?: string };
 
@@ -201,18 +201,7 @@ const IMAGE_TYPES = ["image/png", "image/webp", "image/jpeg", "image/gif"];
 const VIDEO_TYPES = ["video/mp4", "video/webm"];
 const assetSchema = z.object({
   animalId: z.string().uuid(),
-  state: z.enum([
-    "cover",
-    "avatar",
-    "idle",
-    "happy",
-    "comforted",
-    "snacking",
-    "playing",
-    "resting",
-    "poster",
-    "teaser",
-  ]),
+  state: z.enum(Constants.public.Enums.asset_state),
   path: z.string().regex(/^animals\/[a-z0-9-]+\/[A-Za-z0-9._-]+$/),
   mime: z.enum([...IMAGE_TYPES, ...VIDEO_TYPES] as [string, ...string[]]),
   size: z
@@ -256,7 +245,7 @@ export async function registerAsset(input: z.input<typeof assetSchema>): Promise
     .eq("is_active", true);
   const { error } = await supabase.from("animal_assets").insert({
     animal_id: d.animalId,
-    state: d.state as AssetState,
+    state: d.state,
     media_kind: VIDEO_TYPES.includes(d.mime) ? "video" : "image",
     storage_path: d.path,
     public_url: publicUrl,
@@ -440,7 +429,7 @@ const economySchema = z.object({
   welcome_acorns: z.number().int().min(0).max(10000),
   actions: z.object(
     Object.fromEntries(
-      (["comfort", "snack", "play", "rest"] as const).map((a) => [
+      Constants.public.Enums.care_action_type.map((a) => [
         a,
         z.object({
           xp: z.number().int().min(0).max(1000),
