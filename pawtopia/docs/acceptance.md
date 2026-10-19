@@ -18,7 +18,7 @@ project** (none connected yet).
 | `next build` (production, with and without Supabase configured)        | ✅ success                    |
 | Migrations + seed on a clean database · `setup.sql` matches migrations | ✅ applied · ✅ in sync       |
 | `npm audit --omit=dev` (production dependencies)                       | ✅ 0 vulnerabilities          |
-| Unit tests (`src/**/*.test.ts`)                                        | ✅ 41 / 41                    |
+| Unit tests (`src/**/*.test.ts`)                                        | ✅ 46 / 46                    |
 | DB integration tests (`tests/db`, real API + RLS + Storage)            | ✅ 46 / 46                    |
 | Playwright E2E (`tests/e2e`, 360 px phone viewport)                    | ✅ 19 / 19                    |
 | Automated WCAG 2.2 AA audit (axe) on 21 public, game and admin screens | ✅ no serious/critical issues |

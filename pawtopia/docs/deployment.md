@@ -89,6 +89,10 @@ Set `ADMIN_EMAILS` on Vercel to your email and sign in — you become admin on t
 sign-in. Or sign in on the live site once, then `npm run admin:grant -- you@example.com` with the
 production env in `.env.local`, or run the SQL in the README.
 
+No **Admin** link after signing in? Check that you redeployed after setting `ADMIN_EMAILS`,
+then search **Vercel → Logs** for `admin bootstrap`: a failed grant or a missing
+`SUPABASE_SERVICE_ROLE_KEY` is logged there.
+
 ## 5. Launch checklist
 
 - [ ] `/admin` → Launch mode: start in **Waitlist**, switch to **Open beta** at launch.
