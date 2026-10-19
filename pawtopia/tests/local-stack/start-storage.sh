@@ -7,7 +7,8 @@ STACK_DIR="${STACK_DIR:-/tmp/pawtopia-stack}"
 STORAGE_SRC="${STORAGE_SRC:?set STORAGE_SRC to a built supabase/storage checkout}"
 eval "$(node "$HERE/keys.mjs")"
 mkdir -p "$STACK_DIR/storage-data" "$STACK_DIR/logs"
-pkill -f "$STORAGE_SRC/dist/start/server.js" 2>/dev/null || true
+# Anchored so it can't match the shell that launched this script.
+pkill -f "^node $STORAGE_SRC/dist/start/server.js" 2>/dev/null || true
 cd "$STORAGE_SRC"
 env SERVER_HOST=127.0.0.1 SERVER_PORT=5000 SERVER_ADMIN_PORT=5001 \
   AUTH_JWT_SECRET=super-secret-jwt-token-with-at-least-32-characters-long AUTH_JWT_ALGORITHM=HS256 \

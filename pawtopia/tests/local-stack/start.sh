@@ -33,10 +33,13 @@ if ! pg_isready -h 127.0.0.1 -p 54322 -q; then
 fi
 if [ "$fresh" = 1 ]; then $PSQL -f "$HERE/bootstrap.sql"; fi
 
-pkill -f "$GOTRUE_BIN serve" 2>/dev/null || true
-pkill -f "$POSTGREST_BIN" 2>/dev/null || true
-pkill -f "local-stack/mail-sink.mjs" 2>/dev/null || true
-pkill -f "local-stack/gateway.mjs" 2>/dev/null || true
+# Stop previous instances. Patterns are anchored to the start of each process's
+# command line, so they can never match the shell that launched this script.
+stop() { pkill -f "^$1" 2>/dev/null || true; }
+stop "$GOTRUE_BIN serve"
+stop "$POSTGREST_BIN "
+stop "node $HERE/mail-sink.mjs"
+stop "node $HERE/gateway.mjs"
 sleep 0.5
 
 nohup node "$HERE/mail-sink.mjs" > "$LOGS/mail.log" 2>&1 &
