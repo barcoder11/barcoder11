@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CareRoom } from "@/components/game/CareRoom";
 import { SyncBalance } from "@/components/game/GameState";
-import { assetMap, getChapterOutline, getEconomy } from "@/lib/data/catalog";
-import { getAdoption, getLastCareTimes, getWallet } from "@/lib/data/player";
+import { assetMap, getChapterOutline, getEconomy, listRescuesForAnimal } from "@/lib/data/catalog";
+import { getProfile } from "@/lib/auth";
+import { env } from "@/lib/env";
+import { getAcornActivitiesToday, getAdoption, getLastCareTimes, getWallet } from "@/lib/data/player";
 import { getSceneData } from "@/lib/data/scene";
 import { nowMs } from "@/lib/time";
 
@@ -15,13 +17,19 @@ export default async function AnimalRoomPage({ params, searchParams }: PageProps
   const adoption = await getAdoption(adoptionId);
   if (!adoption?.animals) notFound();
   const animal = adoption.animals;
-  const [economy, lastTimes, scene, outline, balance] = await Promise.all([
+  const profile = await getProfile();
+  const [economy, lastTimes, scene, outline, balance, rescues, acornActivities] = await Promise.all([
     getEconomy(),
     getLastCareTimes(adoption.id),
     getSceneData(),
     getChapterOutline(animal.id),
     getWallet(),
+    listRescuesForAnimal(animal.id),
+    getAcornActivitiesToday(profile?.timezone ?? "UTC"),
   ]);
+  const shareUrl = rescues[0]
+    ? `${env.siteUrl}/r/${rescues[0].slug}?utm_source=share&utm_medium=player`
+    : `${env.siteUrl}/animals/${animal.slug}?utm_source=share&utm_medium=player`;
 
   return (
     <>
@@ -43,6 +51,8 @@ export default async function AnimalRoomPage({ params, searchParams }: PageProps
       scene={{ style: scene.style, slots: scene.slots, placements: scene.placements, decorBySlug: scene.decorBySlug }}
       outline={outline}
       welcome={sp.welcome === "1"}
+      shareUrl={shareUrl}
+      acornActivitiesToday={acornActivities}
     />
     </>
   );

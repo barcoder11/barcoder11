@@ -1,7 +1,11 @@
 /** Placeholder decoration illustrations, keyed by decor_catalog.art_key. */
 export function DecorArt({ artKey, title, className = "" }: { artKey: string; title: string; className?: string }) {
   return (
-    <svg viewBox="0 0 120 120" className={`overflow-visible ${className}`} role="img" aria-label={title}>
+    <svg
+      viewBox="0 0 120 120"
+      className={`overflow-visible ${className}`}
+      {...(title ? { role: "img", "aria-label": title } : { "aria-hidden": true })}
+    >
       <ellipse cx="60" cy="112" rx="38" ry="6" fill="#183027" opacity="0.12" />
       {ART[artKey] ?? ART.generic}
     </svg>

@@ -3,7 +3,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { ANON_COOKIE, isUuid, NEXT_COOKIE } from "@/lib/attribution";
+import { ANON_COOKIE, FIRST_TOUCH_COOKIE, isUuid, NEXT_COOKIE } from "@/lib/attribution";
 import { env } from "@/lib/env";
 import { finishSignIn } from "@/lib/post-sign-in";
 import { sanitizeNext } from "@/lib/safe-redirect";
@@ -33,7 +33,13 @@ export async function sendCode(prev: AuthState, form: FormData): Promise<AuthSta
   const origin = await siteOrigin();
   const { error } = await supabase.auth.signInWithOtp({
     email: email.data,
-    options: { shouldCreateUser: true, emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}` },
+    options: {
+      shouldCreateUser: true,
+      emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      // Saved on brand-new accounts so a link opened on another device still
+      // returns to the right animal and keeps the video attribution.
+      data: { pt_next: next, pt_ft: store.get(FIRST_TOUCH_COOKIE)?.value ?? null },
+    },
   });
   if (error) {
     const rateLimited = error.status === 429 || /rate|seconds/i.test(error.message);

@@ -84,20 +84,27 @@ test("video link → Maple → sign up → adopt → care → gift → decorate 
   await other.close();
 });
 
-test("magic link opened in a different browser still signs in", async ({ browser }) => {
+test("magic link opened on another device returns the new player to Maple with attribution", async ({ browser }) => {
   const email = newEmail("magic");
   const a = await browser.newContext();
   const pa = await a.newPage();
-  await pa.goto("/auth");
+  await pa.goto("/r/maple-flood-rescue?utm_source=instagram&utm_campaign=cross_device");
+  await pa.getByTestId("adopt-cta").click();
   await pa.getByLabel("Email address").fill(email);
   await pa.getByRole("button", { name: "Email me a sign-in code" }).click();
   await expect(pa.getByText("Sent to")).toBeVisible();
   const { waitForMail, extractLink } = await import("./helpers");
   const link = extractLink(await waitForMail(email), "/auth/confirm");
+  // A completely separate browser: no cookies from the first one.
   const b = await browser.newContext();
   const pb = await b.newPage();
   await pb.goto(link);
-  await expect(pb).toHaveURL(/\/onboarding/);
+  await expect(pb).toHaveURL(/\/onboarding\?next=%2Fanimals%2Fmaple%2Fadopt/);
+  await completeOnboarding(pb);
+  await expect(pb).toHaveURL(/\/animals\/maple\/adopt/);
+  const { rows } = await pool.query(
+    `select p.first_touch from public.profiles p join auth.users u on u.id = p.user_id where u.email = $1`, [email]);
+  expect(rows[0].first_touch).toMatchObject({ source: "instagram", campaign: "cross_device", rescue_slug: "maple-flood-rescue" });
   await a.close();
   await b.close();
 });

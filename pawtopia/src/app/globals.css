@@ -10,7 +10,7 @@
   --color-cream-200: #f7ecd8;
   --color-honey: #edbc78;
   --color-honey-600: #d9a35b;
-  --color-terracotta: #a86548;
+  --color-terracotta: #965337; /* PRD #A86548, darkened slightly to pass WCAG AA for small text */
   --color-ink: #183027;
   --color-ink-soft: #3d5a4e;
   --color-sky: #cfe8ef;

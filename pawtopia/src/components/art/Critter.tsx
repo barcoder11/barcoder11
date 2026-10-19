@@ -16,20 +16,21 @@ const DEFAULTS: Record<PlaceholderStyle, Required<AnimalColors>> = {
  * Placeholder character art (stylised SVG) with animation states.
  * Replaced automatically by official uploaded art when an asset exists for the state.
  */
-export function Critter({
-  variant,
-  colors,
-  state = "idle",
-  title,
-  className = "",
-}: {
+type CritterProps = {
   variant: PlaceholderStyle;
   colors?: AnimalColors;
   state?: PetState;
   title: string;
   className?: string;
-}) {
+};
+
+export function Critter(props: CritterProps) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
+  return <CritterSvg {...props} uid={uid} />;
+}
+
+/** Hook-free version (used for server-side image generation). */
+export function CritterSvg({ variant, colors, state = "idle", title, className = "", uid }: CritterProps & { uid: string }) {
   const c = { ...DEFAULTS[variant], ...(colors ?? {}) };
   const isPenguin = variant === "penguin";
   const eyesClosed = state === "resting";

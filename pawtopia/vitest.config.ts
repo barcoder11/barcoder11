@@ -4,7 +4,7 @@ import path from "node:path";
 export default defineConfig({
   resolve: { alias: { "@": path.resolve(__dirname, "src") } },
   test: {
-    include: ["src/**/*.test.ts", "tests/db/**/*.test.ts"],
+    include: ["src/**/*.test.{ts,tsx}", "tests/db/**/*.test.ts"],
     environment: "node",
     // DB tests share one database; run files sequentially.
     fileParallelism: false,

@@ -97,3 +97,23 @@ export const getSanctuary = cache(async () => {
       .map((i) => ({ ...(i.decor_catalog as Decor), source: i.source })),
   };
 });
+
+/** Care activities that already earned acorns today (player's local day, across all animals). */
+export async function getAcornActivitiesToday(timezone: string): Promise<CareAction[]> {
+  const user = await getSessionUser();
+  if (!user) return [];
+  let today: string;
+  try {
+    today = new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(new Date());
+  } catch {
+    today = new Date().toISOString().slice(0, 10);
+  }
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("care_actions")
+    .select("action_type")
+    .eq("user_id", user.id)
+    .eq("local_date", today)
+    .gt("rewarded_acorns", 0);
+  return [...new Set((data ?? []).map((r) => r.action_type as CareAction))];
+}

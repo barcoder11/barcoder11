@@ -12,10 +12,16 @@ export const newEmail = (tag: string) => `${tag}-${crypto.randomUUID().slice(0, 
 
 type Mail = { subject: string; text: string; html: string };
 
-export async function waitForMail(to: string, match: (m: Mail) => boolean = () => true): Promise<Mail> {
+export async function mailCount(to: string) {
+  const res = await fetch(`${MAIL_API}/messages?to=${encodeURIComponent(to)}`);
+  return ((await res.json()) as Mail[]).length;
+}
+
+/** Waits for an email to `to`, ignoring the first `after` messages (already received). */
+export async function waitForMail(to: string, match: (m: Mail) => boolean = () => true, after = 0): Promise<Mail> {
   for (let i = 0; i < 40; i++) {
     const res = await fetch(`${MAIL_API}/messages?to=${encodeURIComponent(to)}`);
-    const list = (await res.json()) as Mail[];
+    const list = ((await res.json()) as Mail[]).slice(after);
     const found = [...list].reverse().find(match);
     if (found) return found;
     await new Promise((r) => setTimeout(r, 250));
@@ -37,10 +43,11 @@ export function extractLink(mail: Mail, contains: string) {
 
 /** Signs in on the current page with the emailed 6-digit code (page must be on /auth). */
 export async function signInWithCode(page: Page, email: string) {
+  const before = await mailCount(email);
   await page.getByLabel("Email address").fill(email);
   await page.getByRole("button", { name: "Email me a sign-in code" }).click();
   await expect(page.getByText("Sent to")).toBeVisible();
-  const code = extractCode(await waitForMail(email));
+  const code = extractCode(await waitForMail(email, () => true, before));
   await page.getByLabel("6-digit code").fill(code);
   await page.getByRole("button", { name: "Enter Pawtopia" }).click();
 }

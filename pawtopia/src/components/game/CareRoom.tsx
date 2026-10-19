@@ -34,6 +34,8 @@ export function CareRoom(props: {
   scene: { style: string; slots: HabitatSlot[]; placements: Placement[]; decorBySlug: Record<string, Decor> };
   outline: ChapterOutline[];
   welcome: boolean;
+  shareUrl: string;
+  acornActivitiesToday: CareAction[];
 }) {
   const { adoption, animal, assets, economy, outline, scene } = props;
   const { setBalance } = useGameState();
@@ -48,6 +50,8 @@ export function CareRoom(props: {
   const [reaction, setReaction] = useState(`${displayName} looks up at you with bright, curious eyes.`);
   const [modal, setModal] = useState<Modal>(null);
   const [done, setDone] = useState<Set<CareAction>>(new Set());
+  const [acornToday, setAcornToday] = useState<Set<CareAction>>(() => new Set(props.acornActivitiesToday));
+  const [shareNote, setShareNote] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(adoption.care_count === 0);
   const [now, setNow] = useState(() => props.serverNow);
   const offset = useRef(0);
@@ -110,7 +114,10 @@ export function CareRoom(props: {
       setReaction(reactionText(action, displayName, toastId.current + xp));
       if (result.status === "ok") {
         if (result.xp_awarded) pushToast(`+${result.xp_awarded} bond`, "xp");
-        if (result.acorns_awarded) setTimeout(() => pushToast(`+${result.acorns_awarded} acorns`, "acorn"), 250);
+        if (result.acorns_awarded) {
+          setTimeout(() => pushToast(`+${result.acorns_awarded} acorns`, "acorn"), 250);
+          setAcornToday((s) => new Set(s).add(action));
+        }
         if (!result.xp_awarded && !result.acorns_awarded) {
           pushToast(`${displayName} loved that!`, "info");
           setReaction((r) => `${r} (Today's bond rewards are complete — come back tomorrow for more.)`);
@@ -275,13 +282,35 @@ export function CareRoom(props: {
             </p>
           )}
         </div>
+        <AcornBonus limit={economy.daily_acorn_actions} earned={acornToday} />
       </div>
 
       <div className="flex flex-wrap gap-2 text-sm">
         <Link href="/app/sanctuary" className={buttonClass("light", "sm")}>🏡 Decorate</Link>
         <Link href="/app/stories" className={buttonClass("light", "sm")}>📖 Story</Link>
         <Link href="/app/shop" className={buttonClass("light", "sm")}>🛍️ Shop</Link>
+        <button
+          type="button"
+          className={buttonClass("honey", "sm")}
+          data-testid="share"
+          onClick={async () => {
+            const text = `I virtually adopted ${animal.name} in Pawtopia 🐾 Come meet them!`;
+            try {
+              if (navigator.share) {
+                await navigator.share({ title: `${animal.name} · Pawtopia`, text, url: props.shareUrl });
+                return;
+              }
+              await navigator.clipboard.writeText(`${text} ${props.shareUrl}`);
+              setShareNote("Link copied — paste it anywhere!");
+            } catch {
+              setShareNote(null);
+            }
+          }}
+        >
+          📣 Share {animal.name}
+        </button>
       </div>
+      {shareNote && <p className="text-sm font-bold text-forest" role="status">{shareNote}</p>}
 
       {/* ---------------------------------------------------- modals */}
       {modal && (
@@ -366,5 +395,24 @@ function NameEditor({ id, name, canonical, onSaved }: { id: string; name: string
       <button type="submit" className="rounded-lg bg-forest px-2 py-1 text-xs font-bold text-cream">Save</button>
       {error && <span className="text-xs text-terracotta">{error}</span>}
     </form>
+  );
+}
+
+/** Shows how many acorn-earning activities are left today (resets at the player's local midnight). */
+function AcornBonus({ limit, earned }: { limit: number; earned: Set<CareAction> }) {
+  if (limit <= 0) return null;
+  const left = Math.max(0, limit - earned.size);
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-2xl bg-honey/20 px-3 py-2 text-sm" data-testid="acorn-bonus">
+      <span className="font-bold">🌰 Daily acorn bonus</span>
+      <span className="flex items-center gap-1.5" aria-label={left > 0 ? `${left} of ${limit} acorn activities left today` : "Today's acorn bonus complete"}>
+        {Array.from({ length: limit }, (_, i) => (
+          <span key={i} className={`h-3 w-3 rounded-full ${i < earned.size ? "bg-honey-600" : "bg-white ring-1 ring-ink/15"}`} aria-hidden="true" />
+        ))}
+        <span className="ml-1 text-xs font-semibold text-ink-soft">
+          {left > 0 ? `${left} left — try a different activity` : "Done for today · bond still grows"}
+        </span>
+      </span>
+    </div>
   );
 }

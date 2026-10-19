@@ -40,7 +40,9 @@ emails arrive in Mailpit locally.
 
 ### Make yourself an admin
 
-Sign in once with your email, then:
+Easiest: set `ADMIN_EMAILS=you@example.com` (server env var) and sign in — you become
+admin automatically. Removing an email from the list later does not revoke the role
+(delete it from `app_roles`). Alternatively, sign in once, then:
 
 ```bash
 npm run admin:grant -- you@example.com          # or: ... you@example.com editor
@@ -58,6 +60,7 @@ Roles can't be granted from inside the app — by design.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | browser + server | Anon / publishable key (RLS-protected) |
 | `SUPABASE_SERVICE_ROLE_KEY` | **server only** | Waitlist tokens, account deletion, admin script |
 | `NEXT_PUBLIC_SITE_URL` | both | Canonical URL for emails and share links |
+| `ADMIN_EMAILS` | server | Comma-separated emails auto-promoted to admin on sign-in |
 | `SMTP_HOST` `SMTP_PORT` `SMTP_USER` `SMTP_PASS` `EMAIL_FROM` | server | Waitlist confirmation emails (optional) |
 
 Without Supabase variables the app shows a setup screen instead of crashing.

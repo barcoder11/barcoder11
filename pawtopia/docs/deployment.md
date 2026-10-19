@@ -39,7 +39,8 @@ waitlist sign-ups are stored but unconfirmed, and the form says so honestly.
 
 ## 4. Admin bootstrap
 
-Sign in on the live site once, then `npm run admin:grant -- you@example.com` with the
+Set `ADMIN_EMAILS` on Vercel to your email and sign in — you become admin on that
+sign-in. Or sign in on the live site once, then `npm run admin:grant -- you@example.com` with the
 production env in `.env.local`, or run the SQL in the README.
 
 ## 5. Launch checklist

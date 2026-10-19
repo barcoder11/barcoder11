@@ -46,7 +46,7 @@ export default async function StoriesPage() {
               </div>
             </div>
             {/* phase path */}
-            <ol className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar" aria-label="Recovery phases">
+            <ol className="flex flex-wrap items-center gap-1" aria-label="Recovery phases">
               {PHASES.map((p, i) => {
                 const reached = PHASES.findIndex((x) => x.id === a.phase) >= i;
                 return (
