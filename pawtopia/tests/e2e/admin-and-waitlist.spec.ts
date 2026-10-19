@@ -62,6 +62,8 @@ test("admin publishes a brand-new animal + rescue and gets share links, without 
   await ap.goto(new URL(link!).pathname + new URL(link!).search);
   await expect(ap.getByTestId("animal-name")).toHaveText("Hazel");
   await expect(ap.getByRole("img", { name: "Hazel the hedgehog curled in leaves" })).toBeVisible();
+  // The animal page this visitor saw as "not found" is live now (public pages are cached per catalog version).
+  expect((await ap.goto(`/animals/${slug}`))?.status()).toBe(200);
   await anon.close();
 
   // Uploaded art animates like the placeholder art, and reactions still show effects.

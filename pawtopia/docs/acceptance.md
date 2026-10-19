@@ -14,12 +14,13 @@ project** (none connected yet).
 | ---------------------------------------------------------------------- | ----------------------------- |
 | Prettier · ESLint · TypeScript (`tsc --noEmit`)                        | ✅ clean                      |
 | knip (unused files, exports, dependencies)                             | ✅ clean                      |
+| Generated database types match the migrations (CI, fresh database)     | ✅ in sync                    |
 | `next build` (production, with and without Supabase configured)        | ✅ success                    |
 | Migrations + seed on a clean database · `setup.sql` matches migrations | ✅ applied · ✅ in sync       |
 | `npm audit --omit=dev` (production dependencies)                       | ✅ 0 vulnerabilities          |
 | Unit tests (`src/**/*.test.ts`)                                        | ✅ 37 / 37                    |
 | DB integration tests (`tests/db`, real API + RLS + Storage)            | ✅ 44 / 44                    |
-| Playwright E2E (`tests/e2e`, 360 px phone viewport)                    | ✅ 18 / 18                    |
+| Playwright E2E (`tests/e2e`, 360 px phone viewport)                    | ✅ 19 / 19                    |
 | Automated WCAG 2.2 AA audit (axe) on 21 public, game and admin screens | ✅ no serious/critical issues |
 | Strict Content-Security-Policy (E2E listens for violations)            | ✅ none                       |
 
@@ -70,3 +71,8 @@ project** (none connected yet).
   swallows a chapter popup; forms recover from dropped connections; dialogs are accessible.
 - Engineering: Prettier, knip, structured logging without personal data, a database
   function allow-list test, timezone and data-export isolation tests, and CI on every push.
+- All database access is typed from the generated schema; validation reuses database enums.
+- Fixed: the waitlist "delete my email" page confirmed deletions that hadn't happened (used
+  link or failed call); it now reports the real outcome.
+- Performance: fewer sequential database calls per page (signed-in pages ~50 ms faster with
+  realistic latency), analytics writes deferred until after the response.

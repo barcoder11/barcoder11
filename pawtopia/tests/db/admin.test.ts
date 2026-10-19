@@ -272,6 +272,49 @@ describe.skipIf(!dbTestsEnabled)("admin tools", () => {
   });
 });
 
+describe.skipIf(!dbTestsEnabled)("public catalog version", () => {
+  const version = async () => Number((await pool.query(`select version from public.catalog_version`)).rows[0].version);
+
+  it("bumps when visible content changes, by any path, but not when people play", async () => {
+    const admin = await createUser({ admin: true });
+    const v0 = await version();
+    // An editor's edit through the API (RLS) — the definer trigger still updates the version.
+    const { data: maple } = await admin.db.from("animals").select("sort_order").eq("slug", "maple").single();
+    const edit = await admin.db
+      .from("animals")
+      .update({ sort_order: maple!.sort_order })
+      .eq("slug", "maple")
+      .select("id");
+    expect(edit.error).toBeNull();
+    const v1 = await version();
+    expect(v1).toBeGreaterThan(v0);
+    // Direct SQL (table editor) and launch-mode changes count too.
+    await pool.query(`update public.story_chapters set title = title where false`);
+    await setLaunchMode("open");
+    expect(await version()).toBeGreaterThan(v1);
+
+    const v2 = await version();
+    const player = await createUser();
+    await player.db.rpc("rename_sanctuary", { p_name: "Cozy Corner" });
+    await player.db.rpc("update_profile", {
+      p_display_name: "Player",
+      p_timezone: "UTC",
+      p_marketing_opt_in: false,
+      p_reduced_motion: false,
+    });
+    expect(await version()).toBe(v2);
+  });
+
+  it("is readable by everyone and writable by no one", async () => {
+    const { data } = await anonClient().from("catalog_version").select("version").single();
+    expect(Number(data?.version)).toBe(await version());
+    const player = await createUser();
+    const write = await player.db.from("catalog_version").update({ version: 0 }).eq("id", true).select();
+    expect(write.error ?? (write.data?.length === 0 ? "blocked" : null)).not.toBeNull();
+    expect((await anonClient().rpc("_bump_catalog_version")).error).not.toBeNull();
+  });
+});
+
 describe.skipIf(!dbTestsEnabled)("abuse protection and retention", () => {
   it("limits waitlist sign-ups per client", async () => {
     const svc = serviceClient();

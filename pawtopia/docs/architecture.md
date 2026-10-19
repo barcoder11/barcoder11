@@ -161,6 +161,13 @@ trips, so the code keeps them few and parallel:
   sanctuary + habitat, rescue + animal).
 - Work that doesn't change the page — return-visit tracking — runs after the response is
   sent (`after()`), so it never delays rendering.
+- **Public catalog cache.** Anonymous visitors (nearly all traffic from the videos) see the
+  same published content, so their catalog reads are shared across requests and keyed by
+  `public.catalog_version`, a counter that database triggers bump whenever animals, art,
+  rescues, chapters or settings change — by any path, including the SQL and table editors.
+  A cached landing page costs one single-row read (plus the analytics beacon), and is never
+  stale. Signed-in visitors always read live through their session (`lib/data/catalog-cache.ts`).
+  If the counter table is missing, pages are served uncached rather than failing.
 - Session checks are local with Supabase's asymmetric JWT signing keys (cached JWKS);
   keep Vercel and Supabase in the same region (see docs/deployment.md).
 

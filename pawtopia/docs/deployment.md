@@ -39,9 +39,9 @@
 ### Upgrading a database set up from an older `setup.sql`
 
 Run any migration in `supabase/migrations/` that your database doesn't have yet, in
-filename order, in the SQL editor (or `npx supabase db push`). The two added on
-2026-10-20 — `20261020000100_abuse_protection.sql` and `20261020000200_admin_tools.sql` —
-are safe to run more than once.
+filename order, in the SQL editor (or `npx supabase db push`). The three added on
+2026-10-20 — `20261020000100_abuse_protection.sql`, `20261020000200_admin_tools.sql` and
+`20261020000300_catalog_version.sql` — are safe to run more than once.
 
 ## 2. Vercel
 

@@ -331,6 +331,25 @@ export type Database = {
           },
         ];
       };
+      catalog_version: {
+        Row: {
+          changed_at: string;
+          id: boolean;
+          version: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          changed_at?: string;
+          id?: boolean;
+          version?: number;
+        };
+        Update: {
+          changed_at?: string;
+          id?: boolean;
+          version?: number;
+        };
+        Relationships: [];
+      };
       currency_ledger: {
         Row: {
           balance_after: number;
