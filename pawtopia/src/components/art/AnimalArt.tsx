@@ -4,7 +4,7 @@ import { Critter, StateEffects, type PetState } from "./Critter";
 type AssetMap = Partial<Record<AssetState, AnimalAsset>>;
 
 /** Picks the uploaded asset for a state (falling back to idle/avatar), else undefined (placeholder art). */
-export function pickAsset(assets: AssetMap, state: PetState): AnimalAsset | undefined {
+function pickAsset(assets: AssetMap, state: PetState): AnimalAsset | undefined {
   return assets[state as AssetState] ?? assets.idle ?? assets.avatar;
 }
 

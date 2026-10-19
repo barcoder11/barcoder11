@@ -1,0 +1,11 @@
+# Generated or third-party output
+.next/
+node_modules/
+coverage/
+test-results/
+playwright-report/
+package-lock.json
+next-env.d.ts
+public/
+# Supabase email templates use Go template syntax
+supabase/templates/

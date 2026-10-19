@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
 import { one } from "@/lib/data/db";
 
-export type SessionUser = { id: string; email: string | null };
+type SessionUser = { id: string; email: string | null };
 
 /** Verified current user (JWT validated by Supabase), deduped per request. */
 export const getSessionUser = cache(async (): Promise<SessionUser | null> => {

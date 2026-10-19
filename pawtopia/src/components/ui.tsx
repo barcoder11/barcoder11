@@ -71,13 +71,7 @@ export function Input(props: ComponentProps<"input">) {
   return <input {...props} className={`${inputClass} ${props.className ?? ""}`} />;
 }
 
-export function Textarea(props: ComponentProps<"textarea">) {
-  return <textarea {...props} className={`${inputClass} min-h-24 ${props.className ?? ""}`} />;
-}
 
-export function Select(props: ComponentProps<"select">) {
-  return <select {...props} className={`${inputClass} ${props.className ?? ""}`} />;
-}
 
 export function Notice({
   tone = "info",
@@ -123,7 +117,7 @@ export function Logo({ className = "" }: { className?: string }) {
   );
 }
 
-export function PawIcon({ className = "" }: { className?: string }) {
+function PawIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 48 48" className={className} aria-hidden="true">
       <circle cx="24" cy="24" r="23" fill="#2F6B58" />

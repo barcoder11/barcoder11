@@ -106,3 +106,45 @@ describe("isNewArrival", () => {
     expect(isNewArrival({ status: "coming_soon", published_at: null }, 14, now)).toBe(false);
   });
 });
+
+describe("isBootstrapAdmin", () => {
+  it("matches listed emails regardless of case and spacing", async () => {
+    const { isBootstrapAdmin } = await import("./post-sign-in");
+    expect(isBootstrapAdmin("Owner@Example.com", " owner@example.com , helper@example.org")).toBe(true);
+    expect(isBootstrapAdmin("helper@example.org ", "owner@example.com,helper@example.org")).toBe(true);
+  });
+  it("never matches when the list is unset, empty or doesn't contain the exact email", async () => {
+    const { isBootstrapAdmin } = await import("./post-sign-in");
+    expect(isBootstrapAdmin("owner@example.com", undefined)).toBe(false);
+    expect(isBootstrapAdmin("owner@example.com", "")).toBe(false);
+    expect(isBootstrapAdmin("owner@example.com", " , ,")).toBe(false);
+    expect(isBootstrapAdmin(null, "owner@example.com")).toBe(false);
+    expect(isBootstrapAdmin("", "owner@example.com")).toBe(false);
+    expect(isBootstrapAdmin("evil-owner@example.com", "owner@example.com")).toBe(false);
+    expect(isBootstrapAdmin("owner@example.com.evil.test", "owner@example.com")).toBe(false);
+  });
+});
+
+describe("authErrorMessage", () => {
+  it("returns nothing when there is no error", async () => {
+    const { authErrorMessage } = await import("./auth-errors");
+    expect(authErrorMessage(null, "email")).toBeNull();
+    expect(authErrorMessage(undefined, "code")).toBeNull();
+  });
+  it("explains rate limits at every step", async () => {
+    const { authErrorMessage } = await import("./auth-errors");
+    expect(authErrorMessage({ status: 429 }, "code")).toMatch(/Too many attempts/);
+    expect(authErrorMessage({ status: 400, code: "over_email_send_rate_limit" }, "email")).toMatch(/Too many attempts/);
+    expect(authErrorMessage({ code: "over_request_rate_limit" }, "link")).toMatch(/Too many attempts/);
+  });
+  it("gives step-specific guidance and never leaks the technical message", async () => {
+    const { authErrorMessage } = await import("./auth-errors");
+    const expired = { status: 403, code: "otp_expired", message: "Token has expired or is invalid" };
+    expect(authErrorMessage(expired, "code")).toMatch(/code didn't work/);
+    expect(authErrorMessage(expired, "link")).toMatch(/link has expired/);
+    expect(authErrorMessage({ status: 500, message: "Error sending magic link email" }, "email")).toMatch(/couldn't send/);
+    for (const step of ["email", "code", "link"] as const) {
+      expect(authErrorMessage(expired, step)).not.toContain("Token");
+    }
+  });
+});

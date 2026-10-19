@@ -6,7 +6,7 @@ import { log } from "@/lib/log";
 import { clientKey } from "@/lib/request";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export type ClientEvent = "rescue_landing_viewed" | "animal_page_viewed" | "adoption_cta_clicked" | "signup_started";
+type ClientEvent = "rescue_landing_viewed" | "animal_page_viewed" | "adoption_cta_clicked" | "signup_started";
 
 /**
  * Records a client-reported funnel event for the current visitor. Writes go

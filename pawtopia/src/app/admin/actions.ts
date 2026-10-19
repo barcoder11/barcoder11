@@ -7,7 +7,7 @@ import { getIsAdmin, getIsEditor, getSessionUser } from "@/lib/auth";
 import { MEDIA_BUCKET } from "@/lib/env";
 import type { AssetState } from "@/lib/types";
 
-export type FormState = { ok?: boolean; error?: string; message?: string };
+type FormState = { ok?: boolean; error?: string; message?: string };
 
 const FORBIDDEN = { error: "Your account doesn't have permission to do that." };
 

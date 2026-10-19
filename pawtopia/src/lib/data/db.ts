@@ -5,7 +5,7 @@ import { log } from "@/lib/log";
 type Result = { data: unknown; error: PostgrestError | null };
 type Row = Record<string, unknown>;
 
-export class DataError extends Error {
+class DataError extends Error {
   constructor(context: string, readonly code?: string) {
     super(`Data request failed: ${context}`);
     this.name = "DataError";

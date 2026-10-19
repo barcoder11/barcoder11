@@ -2,7 +2,7 @@ import { expect, type Page } from "@playwright/test";
 import crypto from "node:crypto";
 import pg from "pg";
 
-export const MAIL_API = process.env.E2E_MAIL_API ?? "http://127.0.0.1:54324";
+const MAIL_API = process.env.E2E_MAIL_API ?? "http://127.0.0.1:54324";
 export const pool = new pg.Pool({
   connectionString: process.env.TEST_DATABASE_URL ?? "postgres://postgres:postgres@127.0.0.1:54322/postgres",
   max: 3,
@@ -12,7 +12,7 @@ export const newEmail = (tag: string) => `${tag}-${crypto.randomUUID().slice(0, 
 
 type Mail = { subject: string; text: string; html: string };
 
-export async function mailCount(to: string) {
+async function mailCount(to: string) {
   const res = await fetch(`${MAIL_API}/messages?to=${encodeURIComponent(to)}`);
   return ((await res.json()) as Mail[]).length;
 }
@@ -29,7 +29,7 @@ export async function waitForMail(to: string, match: (m: Mail) => boolean = () =
   throw new Error(`no email for ${to}`);
 }
 
-export function extractCode(mail: Mail) {
+function extractCode(mail: Mail) {
   const m = mail.text.match(/\b(\d{6})\b/);
   if (!m) throw new Error("no code in email");
   return m[1];

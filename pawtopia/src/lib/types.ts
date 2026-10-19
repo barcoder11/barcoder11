@@ -1,6 +1,6 @@
 // Row shapes used by the app (hand-maintained to match supabase/migrations).
 
-export type ContentStatus = "draft" | "coming_soon" | "published" | "archived";
+type ContentStatus = "draft" | "coming_soon" | "published" | "archived";
 export type AssetState =
   | "cover" | "avatar" | "idle" | "happy" | "comforted" | "snacking" | "playing" | "resting" | "poster" | "teaser";
 export type CareAction = "comfort" | "snack" | "play" | "rest";

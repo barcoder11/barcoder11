@@ -5,7 +5,7 @@ import type { Decor, HabitatSlot, Placement } from "@/lib/types";
 
 // Sized against both scene width and height (container query units) so items keep
 // their proportions on wide desktop scenes as well as tall phone scenes.
-export const SLOT_WIDTH: Record<HabitatSlot["category"], string> = {
+const SLOT_WIDTH: Record<HabitatSlot["category"], string> = {
   large: "min(25cqw, 28cqh)",
   hanging: "min(15cqw, 17cqh)",
   small: "min(14cqw, 16cqh)",

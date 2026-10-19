@@ -5,28 +5,28 @@ import pg from "pg";
 // Integration tests run against a Supabase-compatible stack:
 //   - `npx supabase start` (set the env vars from `supabase status`), or
 //   - the Docker-free stack in tests/local-stack (defaults below).
-export const API_URL = process.env.TEST_SUPABASE_URL ?? "http://127.0.0.1:54321";
-export const DB_URL = process.env.TEST_DATABASE_URL ?? "postgres://postgres:postgres@127.0.0.1:54322/postgres";
-export const JWT_SECRET = process.env.TEST_JWT_SECRET ?? "super-secret-jwt-token-with-at-least-32-characters-long";
+const API_URL = process.env.TEST_SUPABASE_URL ?? "http://127.0.0.1:54321";
+const DB_URL = process.env.TEST_DATABASE_URL ?? "postgres://postgres:postgres@127.0.0.1:54322/postgres";
+const JWT_SECRET = process.env.TEST_JWT_SECRET ?? "super-secret-jwt-token-with-at-least-32-characters-long";
 
 export const dbTestsEnabled = process.env.PAWTOPIA_DB_TESTS === "1";
 
 function b64(obj: unknown) {
   return Buffer.from(JSON.stringify(obj)).toString("base64url");
 }
-export function signJwt(payload: Record<string, unknown>) {
+function signJwt(payload: Record<string, unknown>) {
   const head = b64({ alg: "HS256", typ: "JWT" });
   const body = b64({ exp: Math.floor(Date.now() / 1000) + 3600, ...payload });
   const sig = crypto.createHmac("sha256", JWT_SECRET).update(`${head}.${body}`).digest("base64url");
   return `${head}.${body}.${sig}`;
 }
 
-export const ANON_KEY = signJwt({ role: "anon", exp: 2100000000 });
-export const SERVICE_KEY = signJwt({ role: "service_role", exp: 2100000000 });
+const ANON_KEY = signJwt({ role: "anon", exp: 2100000000 });
+const SERVICE_KEY = signJwt({ role: "service_role", exp: 2100000000 });
 
 export const pool = new pg.Pool({ connectionString: DB_URL, max: 5 });
 
-export function clientFor(token: string): SupabaseClient {
+function clientFor(token: string): SupabaseClient {
   return createClient(API_URL, ANON_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: { headers: { Authorization: `Bearer ${token}` } },

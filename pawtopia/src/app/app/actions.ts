@@ -46,7 +46,7 @@ export async function buyDecor(slug: string, key: string): Promise<ShopResult> {
   return data as ShopResult;
 }
 
-export type PlaceResult = { status: string; placements?: Placement[]; expected?: string };
+type PlaceResult = { status: string; placements?: Placement[]; expected?: string };
 
 export async function placeDecor(slotId: string, slug: string): Promise<PlaceResult> {
   const parsed = z

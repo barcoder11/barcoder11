@@ -1,6 +1,6 @@
 // Friendly messages for Supabase Auth errors (no technical details shown to players).
 
-export type AuthStep = "email" | "code" | "link";
+type AuthStep = "email" | "code" | "link";
 
 type AuthErrorLike = { status?: number; code?: string; message?: string } | null | undefined;
 
