@@ -6,9 +6,9 @@ import type { Decor } from "@/lib/types";
 
 /** Everything needed to render the player's sanctuary scene. */
 export async function getSceneData() {
-  const sanctuary = await getSanctuary();
+  const [sanctuary, decor] = await Promise.all([getSanctuary(), listDecor()]);
   const habitatSlug = sanctuary?.habitatSlug ?? "forest-glade";
-  const [habitat, decor] = await Promise.all([getHabitat(habitatSlug), listDecor()]);
+  const habitat = sanctuary?.habitat ?? (await getHabitat(habitatSlug));
   const decorBySlug: Record<string, Decor> = {};
   for (const d of [...decor, ...(sanctuary?.inventory ?? [])]) decorBySlug[d.slug] = d;
   return {

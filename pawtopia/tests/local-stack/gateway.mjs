@@ -2,6 +2,12 @@
 // /auth/v1/* -> GoTrue :9999, /rest/v1/* -> PostgREST :54330, /storage/v1/* -> storage :5000
 import http from "node:http";
 
+// GATEWAY_LOG=1 prints one line per request (useful for counting queries per page).
+// GATEWAY_DELAY_MS=20 adds latency to every request, like the network hop from
+// Vercel to Supabase, so sequential queries (waterfalls) show up in timings.
+const logRequests = process.env.GATEWAY_LOG === "1";
+const delayMs = Number(process.env.GATEWAY_DELAY_MS ?? 0);
+
 const routes = [
   ["/auth/v1", 9999],
   ["/rest/v1", 54330],
@@ -25,6 +31,8 @@ http
       return;
     }
     const [prefix, port] = match;
+    if (logRequests) console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
+    if (delayMs > 0) req.pause();
     const headers = { ...req.headers };
     // Kong forwards the apikey as the bearer token when no user token is sent.
     if (!headers.authorization && headers.apikey) {
@@ -48,7 +56,8 @@ http
     upstream.on("error", (err) => {
       res.writeHead(502).end(String(err));
     });
-    req.pipe(upstream);
+    if (delayMs > 0) setTimeout(() => req.pipe(upstream), delayMs);
+    else req.pipe(upstream);
   })
   .listen(54321, "127.0.0.1");
 

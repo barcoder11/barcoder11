@@ -149,6 +149,25 @@ All later events (adoption, first care, purchases, D1/D7 returns) are written
 server-side inside the game functions and carry the first-touch rescue/source, so
 `admin_funnel` can report per episode and platform without exposing user identities.
 
+## Performance
+
+Pages send visitors only the framework's JavaScript plus ~13 KB of app code (no database
+or validation libraries reach the browser). Server time is dominated by database round
+trips, so the code keeps them few and parallel:
+
+- Independent queries run together (`Promise.all`): the game layout's session, wallet and
+  role checks are one round, and a page never waits for data it doesn't depend on.
+- Related rows come in one request through embedded selects (adoption + animal + art,
+  sanctuary + habitat, rescue + animal).
+- Work that doesn't change the page — return-visit tracking — runs after the response is
+  sent (`after()`), so it never delays rendering.
+- Session checks are local with Supabase's asymmetric JWT signing keys (cached JWKS);
+  keep Vercel and Supabase in the same region (see docs/deployment.md).
+
+Measured on the local stack with 20 ms of simulated latency per database call, signed-in
+pages respond about 50 ms sooner than before these changes. To reproduce, start the
+gateway with `GATEWAY_LOG=1` (one line per request) and `GATEWAY_DELAY_MS=20`.
+
 ## Typed database access
 
 Every Supabase client is created with a `Database` type, so table, column and function

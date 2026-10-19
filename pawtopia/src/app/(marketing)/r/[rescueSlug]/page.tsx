@@ -25,10 +25,9 @@ export async function generateMetadata({ params }: PageProps<"/r/[rescueSlug]">)
 
 export default async function RescuePage({ params }: PageProps<"/r/[rescueSlug]">) {
   const { rescueSlug } = await params;
-  const data = await getRescueBySlug(rescueSlug);
+  const [data, isEditor, launch] = await Promise.all([getRescueBySlug(rescueSlug), getIsEditor(), getLaunchSettings()]);
   if (!data || !data.animal) notFound();
   const { rescue, animal } = data;
-  const isEditor = await getIsEditor();
   const assets = assetMap(animal);
   const teaser = (animal.animal_assets ?? []).find((a) => a.id === rescue.teaser_asset_id) ?? assets.teaser;
   const poster =
@@ -53,11 +52,7 @@ export default async function RescuePage({ params }: PageProps<"/r/[rescueSlug]"
     );
   }
 
-  const [launch, outline, adoptionId] = await Promise.all([
-    getLaunchSettings(),
-    getChapterOutline(animal.id),
-    getMyAdoptionId(animal.id),
-  ]);
+  const [outline, adoptionId] = await Promise.all([getChapterOutline(animal.id), getMyAdoptionId(animal.id)]);
   const adoptable = animal.status === "published" || isEditor;
 
   return (

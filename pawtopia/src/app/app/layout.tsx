@@ -1,19 +1,27 @@
 import Link from "next/link";
+import { after } from "next/server";
 import { AcornCounter, GameStateProvider, MotionPreference } from "@/components/game/GameState";
 import { BottomNav, SideNav } from "@/components/game/GameNav";
 import { Logo } from "@/components/ui";
 import { getIsEditor, requirePlayer } from "@/lib/auth";
 import { getWallet } from "@/lib/data/player";
-import { createClient } from "@/lib/supabase/server";
+import { log } from "@/lib/log";
+import { createDeferredClient } from "@/lib/supabase/server";
 
 export const metadata = { robots: { index: false } };
 
 export default async function GameLayout({ children }: { children: React.ReactNode }) {
-  const { profile } = await requirePlayer("/app");
-  const supabase = await createClient();
-  // Server-side return-visit tracking (D1/D7).
-  await supabase.rpc("touch_activity");
-  const [balance, isEditor] = await Promise.all([getWallet(), getIsEditor()]);
+  const [{ profile }, balance, isEditor, deferred] = await Promise.all([
+    requirePlayer("/app"),
+    getWallet(),
+    getIsEditor(),
+    createDeferredClient(),
+  ]);
+  // Return-visit tracking (D1/D7) runs after the response is sent, so it never delays the page.
+  after(async () => {
+    const { error } = await deferred.rpc("touch_activity");
+    if (error) log.warn("touch_activity failed", { code: error.code });
+  });
 
   return (
     <GameStateProvider initialBalance={balance}>

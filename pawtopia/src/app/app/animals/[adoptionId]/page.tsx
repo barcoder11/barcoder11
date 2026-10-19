@@ -15,16 +15,19 @@ export const metadata: Metadata = { title: "Animal room" };
 export default async function AnimalRoomPage({ params, searchParams }: PageProps<"/app/animals/[adoptionId]">) {
   const { adoptionId } = await params;
   const sp = await searchParams;
-  const adoption = await getAdoption(adoptionId);
+  // Everything that only needs the adoption id runs at once; RLS limits it to the player's own rows.
+  const [adoption, profile, economy, lastTimes, scene, balance] = await Promise.all([
+    getAdoption(adoptionId),
+    getProfile(),
+    getEconomy(),
+    getLastCareTimes(adoptionId),
+    getSceneData(),
+    getWallet(),
+  ]);
   if (!adoption?.animals) notFound();
   const animal = adoption.animals;
-  const profile = await getProfile();
-  const [economy, lastTimes, scene, outline, balance, rescues, acornActivities] = await Promise.all([
-    getEconomy(),
-    getLastCareTimes(adoption.id),
-    getSceneData(),
+  const [outline, rescues, acornActivities] = await Promise.all([
     getChapterOutline(animal.id),
-    getWallet(),
     listRescuesForAnimal(animal.id),
     getAcornActivitiesToday(profile?.timezone ?? "UTC"),
   ]);

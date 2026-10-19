@@ -26,3 +26,19 @@ export async function createClient() {
     },
   });
 }
+
+/**
+ * Client for work scheduled with `after()` in Server Components, which can't
+ * read cookies once the response is sent. Call this during render: it
+ * snapshots the request's cookies now. The proxy already refreshed the
+ * session for this request, so no cookies need to be written later.
+ */
+export async function createDeferredClient() {
+  const snapshot = (await cookies()).getAll();
+  return createServerClient<Database>(env.supabaseUrl, env.supabaseAnonKey, {
+    cookies: {
+      getAll: () => snapshot,
+      setAll() {},
+    },
+  });
+}

@@ -24,11 +24,13 @@ export async function generateMetadata({ params }: PageProps<"/animals/[animalSl
 
 export default async function AnimalPage({ params }: PageProps<"/animals/[animalSlug]">) {
   const { animalSlug } = await params;
-  const animal = await getAnimalBySlug(animalSlug);
-  if (!animal) notFound();
-  const isEditor = await getIsEditor();
-  const [launch, outline, rescues, adoptionId] = await Promise.all([
+  const [animal, isEditor, launch] = await Promise.all([
+    getAnimalBySlug(animalSlug),
+    getIsEditor(),
     getLaunchSettings(),
+  ]);
+  if (!animal) notFound();
+  const [outline, rescues, adoptionId] = await Promise.all([
     getChapterOutline(animal.id),
     listRescuesForAnimal(animal.id),
     getMyAdoptionId(animal.id),

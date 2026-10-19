@@ -39,4 +39,6 @@ REAL_STORAGE=1 bash tests/local-stack/reset-db.sh
 ```
 
 The defaults in `tests/db/helpers.ts` and `tests/e2e/helpers.ts` match both stacks' ports.
+For performance work, start the gateway with `GATEWAY_LOG=1` to log every Supabase request
+and `GATEWAY_DELAY_MS=20` to simulate the network hop between Vercel and Supabase.
 Tests create their own users and toggle launch mode, so use a disposable database.

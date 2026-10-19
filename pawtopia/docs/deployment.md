@@ -2,9 +2,17 @@
 
 ## 1. Supabase project
 
-1. Create a project at supabase.com (pick a region near your players). The easiest way
-   to wire it to Vercel is **Vercel → Project → Storage → Connect Database → Supabase**,
-   which creates the project and sets the Supabase environment variables for you.
+1. Create a project at supabase.com. The easiest way to wire it to Vercel is
+   **Vercel → Project → Storage → Connect Database → Supabase**, which creates the project
+   and sets the Supabase environment variables for you.
+   - **Region: pick the same region as your Vercel Functions** — East US (North Virginia)
+     matches Vercel's default (`iad1`). Every page makes a few database calls in sequence;
+     in the same region each takes a few milliseconds, across an ocean ~80–100 ms each.
+     If you choose another Supabase region, set **Vercel → Project → Settings → Functions →
+     Region** to the matching one.
+   - **Auth → JWT Keys:** keep the default asymmetric signing keys (new projects use them).
+     The app then verifies sessions locally with cached public keys; with the legacy shared
+     JWT secret, every session check becomes a network call to Supabase Auth.
 2. Apply the database — easiest: open **SQL Editor → New query**, paste the whole of
    `supabase/setup.sql` (all migrations + seed in one file) and click **Run**. Or with the CLI:
    ```bash

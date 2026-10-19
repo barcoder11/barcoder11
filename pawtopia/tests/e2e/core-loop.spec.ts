@@ -89,6 +89,8 @@ test("video link → Maple → sign up → adopt → care → gift → decorate 
   await expect(p2.getByRole("heading", { name: "This trail leads nowhere" })).toBeVisible();
   await expect(p2.getByTestId("pet")).toHaveCount(0);
   await expect(p2.getByText("Sam")).toHaveCount(0);
+  await p2.goto("/app/animals/not-a-real-id");
+  await expect(p2.getByRole("heading", { name: "This trail leads nowhere" })).toBeVisible();
   const admin = await p2.goto("/admin");
   expect(admin?.status()).toBe(404);
   await other.close();

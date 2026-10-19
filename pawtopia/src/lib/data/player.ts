@@ -1,10 +1,11 @@
 import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { isUuid } from "@/lib/attribution";
 import { getSessionUser } from "@/lib/auth";
 import { many, one } from "@/lib/data/db";
 import { localDate } from "@/lib/game";
-import type { CareAction, Chapter, Decor, Placement, UserAnimal } from "@/lib/types";
+import type { CareAction, Chapter, Decor, Habitat, Placement, UserAnimal } from "@/lib/types";
 
 // Player-state reads. RLS restricts every query to the signed-in player's own
 // rows; the explicit user_id filters keep query plans index-friendly.
@@ -31,7 +32,7 @@ export const listAdoptions = cache(async (): Promise<UserAnimal[]> => {
 
 export const getAdoption = cache(async (id: string): Promise<UserAnimal | null> => {
   const user = await getSessionUser();
-  if (!user || !/^[0-9a-f-]{36}$/i.test(id)) return null;
+  if (!user || !isUuid(id)) return null;
   const supabase = await createClient();
   const result = await supabase
     .from("user_animals")
@@ -56,6 +57,7 @@ export async function getMyAdoptionId(animalId: string): Promise<string | null> 
 
 /** Latest time each care action was performed for this adoption (for cooldown rings). */
 export async function getLastCareTimes(userAnimalId: string) {
+  if (!isUuid(userAnimalId)) return {}; // may come straight from the URL
   const supabase = await createClient();
   const since = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
   const rows = many(
@@ -114,7 +116,8 @@ export const getSanctuary = cache(async () => {
   if (!user) return null;
   const supabase = await createClient();
   const [sanctuaryResult, placementsResult, inventoryResult] = await Promise.all([
-    supabase.from("sanctuaries").select("*").eq("user_id", user.id).maybeSingle(),
+    // The habitat comes embedded, saving a second round trip for the scene.
+    supabase.from("sanctuaries").select("*, habitats(*)").eq("user_id", user.id).maybeSingle(),
     supabase.from("sanctuary_placements").select("slot_id, habitat_slug, decor_catalog(slug)").eq("user_id", user.id),
     supabase.from("user_inventory").select("acquired_at, source, decor_catalog(*)").eq("user_id", user.id),
   ]);
@@ -125,6 +128,7 @@ export const getSanctuary = cache(async () => {
   return {
     name: sanctuary?.name ?? "My Sanctuary",
     habitatSlug,
+    habitat: (sanctuary?.habitats ?? null) as Habitat | null,
     placements: placements.flatMap((p): Placement[] =>
       p.habitat_slug === habitatSlug && p.decor_catalog
         ? [{ slot_id: p.slot_id, decor_slug: p.decor_catalog.slug }]
