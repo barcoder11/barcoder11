@@ -73,6 +73,26 @@ export const DEFAULT_ECONOMY: Economy = {
   level_thresholds: [0, 15, 40, 75, 120, 180, 250, 330, 420, 520],
 };
 
+/**
+ * The player's calendar date (YYYY-MM-DD) in their timezone. Daily rewards reset
+ * on this date, so it must agree with the database's _local_date(); unknown
+ * timezones fall back to UTC there too.
+ */
+export function localDate(timeZone: string, now = new Date()): string {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(now);
+    const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value;
+    return `${part("year")}-${part("month")}-${part("day")}`;
+  } catch {
+    return now.toISOString().slice(0, 10);
+  }
+}
+
 /** Swaps an animal's canonical name for the player's nickname (whole words only). */
 export function personalize(text: string, canonical: string, nickname: string) {
   if (!nickname || canonical === nickname) return text;

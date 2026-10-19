@@ -1,5 +1,6 @@
 import "server-only";
 import nodemailer from "nodemailer";
+import { log } from "@/lib/log";
 
 /**
  * Transactional email (waitlist confirmations) over SMTP. Works with any
@@ -13,6 +14,7 @@ export function emailConfigured() {
 export async function sendEmail(msg: { to: string; subject: string; html: string; text: string }) {
   if (!emailConfigured()) {
     if (process.env.NODE_ENV !== "production") {
+      // Local development convenience only: shows the link you would have received.
       console.info(`[email not configured] would send "${msg.subject}" to ${msg.to}\n${msg.text}`);
     }
     return { sent: false as const, reason: "not_configured" as const };
@@ -28,7 +30,9 @@ export async function sendEmail(msg: { to: string; subject: string; html: string
     await transport.sendMail({ from: process.env.EMAIL_FROM, ...msg });
     return { sent: true as const };
   } catch (err) {
-    console.error("email send failed", err);
+    // Provider messages can echo the recipient address, so only codes are logged.
+    const { code, responseCode } = (err ?? {}) as { code?: string; responseCode?: number };
+    log.error("email send failed", { code, responseCode });
     return { sent: false as const, reason: "send_failed" as const };
   }
 }

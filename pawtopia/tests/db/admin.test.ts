@@ -22,6 +22,44 @@ describe.skipIf(!dbTestsEnabled)("admin protection", () => {
     expect(data).toBe(false);
   });
 
+  it("visitors and players can call only the intended database functions", async () => {
+    // Postgres lets everyone execute new functions by default, so every function
+    // added later must be granted on purpose. Update these lists deliberately.
+    const callable = async (role: string) =>
+      (
+        await pool.query(
+          `select p.proname as name from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'public' and has_function_privilege($1, p.oid, 'execute')`,
+          [role],
+        )
+      ).rows
+        .map((r) => r.name as string)
+        .sort();
+    expect(await callable("anon")).toEqual(["animal_chapter_outline", "is_admin", "is_content_editor"]);
+    expect(await callable("authenticated")).toEqual([
+      "admin_delete_waitlist_entry",
+      "admin_export_contacts",
+      "admin_funnel",
+      "admin_overview",
+      "admin_publish_rescue",
+      "adopt_animal",
+      "animal_chapter_outline",
+      "complete_onboarding",
+      "export_my_data",
+      "is_admin",
+      "is_content_editor",
+      "perform_care",
+      "place_decor",
+      "purchase_decor",
+      "record_signup",
+      "remove_decor",
+      "rename_adoption",
+      "rename_sanctuary",
+      "touch_activity",
+      "update_profile",
+    ]);
+  });
+
   it("players cannot call admin functions or write content", async () => {
     expect((await player.db.rpc("admin_overview")).error).not.toBeNull();
     expect((await player.db.rpc("admin_funnel", {})).error).not.toBeNull();

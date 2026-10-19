@@ -3,6 +3,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
 import { many, one } from "@/lib/data/db";
+import { localDate } from "@/lib/game";
 import type { CareAction, Chapter, Decor, Placement, UserAnimal } from "@/lib/types";
 
 // Player-state reads. RLS restricts every query to the signed-in player's own
@@ -79,12 +80,7 @@ export async function getLastCareTimes(userAnimalId: string) {
 export async function getAcornActivitiesToday(timezone: string): Promise<CareAction[]> {
   const user = await getSessionUser();
   if (!user) return [];
-  let today: string;
-  try {
-    today = new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(new Date());
-  } catch {
-    today = new Date().toISOString().slice(0, 10);
-  }
+  const today = localDate(timezone);
   const supabase = await createClient();
   const rows = many(
     await supabase

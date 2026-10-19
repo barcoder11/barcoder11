@@ -10,6 +10,7 @@ import {
   setLaunchMode,
   type TestUser,
 } from "./helpers";
+import { localDate } from "@/lib/game";
 
 const uuid = () => crypto.randomUUID();
 
@@ -411,6 +412,84 @@ describe.skipIf(!dbTestsEnabled)("attribution", () => {
       [u.id],
     );
     expect(rows.map((r) => r.event_type)).toEqual(["adoption_cta_clicked", "signup_completed"]);
+  });
+});
+
+describe.skipIf(!dbTestsEnabled)("player calendar and data export", () => {
+  beforeAll(async () => {
+    await setLaunchMode("open");
+  });
+
+  async function setTimezone(u: TestUser, timezone: string) {
+    const { data, error } = await u.db.rpc("update_profile", {
+      p_display_name: "Tester",
+      p_timezone: timezone,
+      p_marketing_opt_in: false,
+      p_reduced_motion: false,
+    });
+    if (error || data?.status !== "ok") throw new Error(`update_profile failed: ${error?.message}`);
+  }
+
+  // UTC+14, UTC-11, a 45-minute offset, and UTC itself.
+  it.each(["Pacific/Kiritimati", "Pacific/Pago_Pago", "Asia/Kathmandu", "UTC"])(
+    "credits care to the player's own calendar day in %s, agreeing with the app",
+    async (timezone) => {
+      const u = await createUser();
+      await setTimezone(u, timezone);
+      const ua = (await adopt(u)).user_animal_id;
+      const before = localDate(timezone);
+      expect((await care(u, ua, "comfort")).status).toBe("ok");
+      const after = localDate(timezone); // differs from `before` only if local midnight just passed
+      const { rows } = await pool.query(
+        `select to_char(local_date, 'YYYY-MM-DD') as day from public.care_actions where user_id = $1`,
+        [u.id],
+      );
+      expect([before, after]).toContain(rows[0].day);
+    },
+  );
+
+  it("unknown timezones are stored as UTC", async () => {
+    const u = await createUser();
+    await setTimezone(u, "Not/AZone");
+    const { data } = await u.db.from("profiles").select("timezone").single();
+    expect(data!.timezone).toBe("UTC");
+  });
+
+  it("gives a fresh acorn allowance once the player's local day rolls over", async () => {
+    const u = await createUser();
+    const ua = (await adopt(u)).user_animal_id;
+    for (const action of ["comfort", "snack", "play"]) {
+      expect((await care(u, ua, action)).acorns_awarded).toBe(5);
+    }
+    expect((await care(u, ua, "rest")).acorns_awarded).toBe(0); // today's three are used up
+    // Local midnight passes: everything so far now belongs to yesterday.
+    await pool.query(`update public.care_actions set local_date = local_date - 1 where user_id = $1`, [u.id]);
+    await ageCareActions(u.id, 3600);
+    const next = await care(u, ua, "rest");
+    expect(next.status).toBe("ok");
+    expect(next.acorns_awarded).toBe(5);
+  });
+
+  it("exports only the signed-in player's own data", async () => {
+    const [a, b] = await Promise.all([createUser(), createUser()]);
+    const [uaA, uaB] = await Promise.all([adopt(a), adopt(b)]).then((r) => r.map((x) => x.user_animal_id));
+    await Promise.all([care(a, uaA, "comfort"), care(b, uaB, "comfort")]);
+
+    const { data, error } = await a.db.rpc("export_my_data");
+    expect(error).toBeNull();
+    expect(data.profile.user_id).toBe(a.id);
+    expect(data.wallet.user_id).toBe(a.id);
+    expect(data.sanctuary.user_id).toBe(a.id);
+    expect(data.adoptions.map((x: any) => x.id)).toEqual([uaA]);
+    expect(data.care_actions).toHaveLength(1);
+    expect(data.currency_ledger.length).toBeGreaterThanOrEqual(2); // welcome gift + first care
+    for (const key of ["adoptions", "care_actions", "story_unlocks", "inventory", "placements", "currency_ledger"]) {
+      for (const row of data[key]) expect(row.user_id).toBe(a.id);
+    }
+    expect(JSON.stringify(data)).not.toContain(b.id);
+    expect(JSON.stringify(data)).not.toContain(uaB);
+
+    expect((await anonClient().rpc("export_my_data")).error).not.toBeNull();
   });
 });
 

@@ -186,3 +186,18 @@ describe("authErrorMessage", () => {
     }
   });
 });
+
+describe("localDate", () => {
+  it("returns the calendar date in the player's timezone", async () => {
+    const { localDate } = await import("./game");
+    const instant = new Date("2026-10-19T23:30:00Z");
+    expect(localDate("UTC", instant)).toBe("2026-10-19");
+    expect(localDate("Pacific/Kiritimati", instant)).toBe("2026-10-20"); // UTC+14
+    expect(localDate("America/Los_Angeles", instant)).toBe("2026-10-19");
+    expect(localDate("Asia/Kathmandu", new Date("2026-12-31T18:15:00Z"))).toBe("2027-01-01"); // UTC+5:45
+  });
+  it("falls back to UTC for unknown timezones, like the database does", async () => {
+    const { localDate } = await import("./game");
+    expect(localDate("Not/AZone", new Date("2026-10-19T23:30:00Z"))).toBe("2026-10-19");
+  });
+});

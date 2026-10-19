@@ -11,32 +11,61 @@ export const pool = new pg.Pool({
 export const newEmail = (tag: string) => `${tag}-${crypto.randomUUID().slice(0, 8)}@example.test`;
 
 type Mail = { subject: string; text: string; html: string };
+type MailSummary = { ID: string; To: { Address: string }[] | null };
+
+// Mailbox access uses the Mailpit HTTP API (bundled with `supabase start`);
+// the Docker-free stack's mail sink implements the same endpoints.
+
+/** Emails sent to `to`, newest first. */
+async function listMail(to: string): Promise<MailSummary[]> {
+  const query = encodeURIComponent(`to:"${to}"`);
+  const res = await fetch(`${MAIL_API}/api/v1/search?query=${query}&limit=100`);
+  if (!res.ok) throw new Error(`mailbox search failed (${res.status})`);
+  const { messages } = (await res.json()) as { messages: MailSummary[] | null };
+  const address = to.toLowerCase();
+  return (messages ?? []).filter((m) => m.To?.some((r) => r.Address.toLowerCase() === address));
+}
+
+async function readMail(id: string): Promise<Mail> {
+  const res = await fetch(`${MAIL_API}/api/v1/message/${encodeURIComponent(id)}`);
+  if (!res.ok) throw new Error(`mailbox read failed (${res.status})`);
+  const mail = (await res.json()) as { Subject?: string; Text?: string; HTML?: string };
+  return { subject: mail.Subject ?? "", text: mail.Text ?? "", html: mail.HTML ?? "" };
+}
 
 async function mailCount(to: string) {
-  const res = await fetch(`${MAIL_API}/messages?to=${encodeURIComponent(to)}`);
-  return ((await res.json()) as Mail[]).length;
+  return (await listMail(to)).length;
 }
 
 /** Waits for an email to `to`, ignoring the first `after` messages (already received). */
 export async function waitForMail(to: string, match: (m: Mail) => boolean = () => true, after = 0): Promise<Mail> {
   for (let i = 0; i < 40; i++) {
-    const res = await fetch(`${MAIL_API}/messages?to=${encodeURIComponent(to)}`);
-    const list = ((await res.json()) as Mail[]).slice(after);
-    const found = [...list].reverse().find(match);
-    if (found) return found;
+    const list = await listMail(to);
+    for (const summary of list.slice(0, Math.max(0, list.length - after))) {
+      const mail = await readMail(summary.ID);
+      if (match(mail)) return mail;
+    }
     await new Promise((r) => setTimeout(r, 250));
   }
   throw new Error(`no email for ${to}`);
 }
 
+/** Text and HTML bodies with entities in links decoded (some mailboxes leave Text empty for HTML-only mail). */
+function searchableBody(mail: Mail) {
+  return `${mail.text}\n${mail.html.replace(/&amp;/g, "&")}`;
+}
+
 function extractCode(mail: Mail) {
-  const m = mail.text.match(/\b(\d{6})\b/);
+  // Tags are stripped so numbers inside attributes (e.g. colours) can't match.
+  const m = searchableBody(mail)
+    .replace(/<[^>]*>/g, " ")
+    .match(/\b(\d{6})\b/);
   if (!m) throw new Error("no code in email");
   return m[1];
 }
 
 export function extractLink(mail: Mail, contains: string) {
-  const m = mail.text.match(new RegExp(`https?://[^\\s\\]]*${contains}[^\\s\\]]*`));
+  const m = searchableBody(mail).match(new RegExp(`https?://[^\\s"'<>\\]]*${contains}[^\\s"'<>\\]]*`));
   if (!m) throw new Error(`no ${contains} link in email`);
   return m[0];
 }
