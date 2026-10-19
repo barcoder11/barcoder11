@@ -27,7 +27,9 @@ export function svgToString(node: ReactNode): string {
     .filter(([k, v]) => k !== "children" && v !== undefined && v !== null && v !== false && typeof v !== "function")
     .map(([k, v]) => {
       if (k === "style" && typeof v === "object") {
-        const css = Object.entries(v as Record<string, unknown>).map(([sk, sv]) => `${attrName(sk)}:${sv}`).join(";");
+        const css = Object.entries(v as Record<string, unknown>)
+          .map(([sk, sv]) => `${attrName(sk)}:${sv}`)
+          .join(";");
         return ` style="${escape(css)}"`;
       }
       return ` ${attrName(k)}="${escape(String(v))}"`;

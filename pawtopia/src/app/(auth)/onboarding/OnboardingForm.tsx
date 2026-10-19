@@ -36,7 +36,9 @@ export function OnboardingForm({ next }: { next: string }) {
               className="flex cursor-pointer flex-col items-center gap-1 rounded-2xl border-2 border-sage-200 bg-white p-3 font-bold has-[:checked]:border-forest has-[:checked]:bg-sage"
             >
               <input type="radio" name="habitat" value={value} className="sr-only" />
-              <span className="text-2xl" aria-hidden="true">{icon}</span>
+              <span className="text-2xl" aria-hidden="true">
+                {icon}
+              </span>
               <span className="text-sm">{label}</span>
             </label>
           ))}
@@ -46,9 +48,15 @@ export function OnboardingForm({ next }: { next: string }) {
         <label className="flex items-start gap-3">
           <input type="checkbox" name="terms" required className="mt-0.5 h-5 w-5 accent-forest" />
           <span>
-            I agree to the <Link href="/terms" target="_blank" className="font-bold text-forest underline">Terms</Link> and{" "}
-            <Link href="/privacy" target="_blank" className="font-bold text-forest underline">Privacy Policy</Link>, and I understand
-            Pawtopia is a fictional game with virtual-only adoptions.
+            I agree to the{" "}
+            <Link href="/terms" target="_blank" className="font-bold text-forest underline">
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" target="_blank" className="font-bold text-forest underline">
+              Privacy Policy
+            </Link>
+            , and I understand Pawtopia is a fictional game with virtual-only adoptions.
           </span>
         </label>
         <label className="flex items-start gap-3">

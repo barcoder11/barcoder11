@@ -27,15 +27,24 @@ export default async function AuthPage({ searchParams }: PageProps<"/auth">) {
   return (
     <Card className="w-full max-w-md p-7 pop-in">
       <div className="mb-5 text-center">
-        <div className="text-5xl" aria-hidden="true">🦝</div>
+        <div className="text-5xl" aria-hidden="true">
+          🦝
+        </div>
         <h1 className="mt-2 font-display text-3xl font-bold">
           {adopting ? "One quick step to adopt" : "Welcome to Pawtopia"}
         </h1>
         <p className="mt-1 text-ink-soft">
-          {adopting ? "Sign in with your email so your new friend is saved to your sanctuary." : "Sign in or create your free account."}
+          {adopting
+            ? "Sign in with your email so your new friend is saved to your sanctuary."
+            : "Sign in or create your free account."}
         </p>
       </div>
-      <AuthForm next={next} initialError={error} siteOrigin={await siteOrigin()} firstTouch={touch ? encodeFirstTouch(touch) : null} />
+      <AuthForm
+        next={next}
+        initialError={error}
+        siteOrigin={await siteOrigin()}
+        firstTouch={touch ? encodeFirstTouch(touch) : null}
+      />
     </Card>
   );
 }

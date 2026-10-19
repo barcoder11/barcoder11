@@ -11,16 +11,26 @@ export async function SiteHeader() {
           <Logo className="text-xl sm:text-2xl" />
         </Link>
         <nav className="flex items-center gap-1 sm:gap-3">
-          <Link href="/#rescues" className="hidden rounded-full px-3 py-2 font-bold text-ink-soft hover:bg-sage sm:inline-flex">
+          <Link
+            href="/#rescues"
+            className="hidden rounded-full px-3 py-2 font-bold text-ink-soft hover:bg-sage sm:inline-flex"
+          >
             Rescues
           </Link>
-          <Link href="/#how" className="hidden rounded-full px-3 py-2 font-bold text-ink-soft hover:bg-sage sm:inline-flex">
+          <Link
+            href="/#how"
+            className="hidden rounded-full px-3 py-2 font-bold text-ink-soft hover:bg-sage sm:inline-flex"
+          >
             How it works
           </Link>
           {user ? (
-            <ButtonLink href="/app" size="sm" prefetch={false}>My sanctuary</ButtonLink>
+            <ButtonLink href="/app" size="sm" prefetch={false}>
+              My sanctuary
+            </ButtonLink>
           ) : (
-            <ButtonLink href="/auth" size="sm" variant="light">Sign in</ButtonLink>
+            <ButtonLink href="/auth" size="sm" variant="light">
+              Sign in
+            </ButtonLink>
           )}
         </nav>
       </div>
@@ -41,10 +51,18 @@ export function SiteFooter() {
           </p>
         </div>
         <nav className="flex flex-wrap items-start gap-4 text-sm font-bold text-forest">
-          <Link href="/privacy" className="hover:underline">Privacy</Link>
-          <Link href="/terms" className="hover:underline">Terms</Link>
-          <Link href="/waitlist" className="hover:underline">Waitlist</Link>
-          <Link href="/auth" className="hover:underline">Sign in</Link>
+          <Link href="/privacy" className="hover:underline">
+            Privacy
+          </Link>
+          <Link href="/terms" className="hover:underline">
+            Terms
+          </Link>
+          <Link href="/waitlist" className="hover:underline">
+            Waitlist
+          </Link>
+          <Link href="/auth" className="hover:underline">
+            Sign in
+          </Link>
         </nav>
       </div>
     </footer>

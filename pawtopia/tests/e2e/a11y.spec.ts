@@ -10,7 +10,9 @@ async function audit(page: Page, label: string) {
   await page.waitForTimeout(300);
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
-  const summary = serious.map((v) => `${label}: ${v.id} — ${v.help} (${v.nodes.length}) e.g. ${v.nodes[0]?.target.join(" ")}`);
+  const summary = serious.map(
+    (v) => `${label}: ${v.id} — ${v.help} (${v.nodes.length}) e.g. ${v.nodes[0]?.target.join(" ")}`,
+  );
   expect(summary, summary.join("\n")).toEqual([]);
 }
 
@@ -43,8 +45,19 @@ test("admin screens have no serious accessibility violations", async ({ page }) 
   await page.goto("/auth?next=/app");
   await signInWithCode(page, email);
   await completeOnboarding(page, "Auditor");
-  await pool.query(`insert into public.app_roles (user_id, role, granted_by) select id, 'admin', 'e2e' from auth.users where email = $1`, [email]);
-  for (const path of ["/admin", "/admin/animals", "/admin/animals/new", "/admin/rescues", "/admin/decor", "/admin/waitlist", "/admin/analytics"]) {
+  await pool.query(
+    `insert into public.app_roles (user_id, role, granted_by) select id, 'admin', 'e2e' from auth.users where email = $1`,
+    [email],
+  );
+  for (const path of [
+    "/admin",
+    "/admin/animals",
+    "/admin/animals/new",
+    "/admin/rescues",
+    "/admin/decor",
+    "/admin/waitlist",
+    "/admin/analytics",
+  ]) {
     await page.goto(path);
     await audit(page, path);
   }

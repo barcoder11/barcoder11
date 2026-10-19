@@ -8,7 +8,13 @@ import { AnimalArt } from "@/components/art/AnimalArt";
 import { SceneBackdrop } from "@/components/art/SceneBackdrop";
 import { ButtonLink, Card, Notice } from "@/components/ui";
 import {
-  deleteAsset, deleteChapter, deleteDraftAnimal, saveChapter, setAnimalStatus, setAssetActive, updateAnimal,
+  deleteAsset,
+  deleteChapter,
+  deleteDraftAnimal,
+  saveChapter,
+  setAnimalStatus,
+  setAssetActive,
+  updateAnimal,
 } from "../../actions";
 import { assetMap } from "@/lib/animals";
 import { PHASES } from "@/lib/game";
@@ -40,15 +46,21 @@ export default async function EditAnimal({ params, searchParams }: PageProps<"/a
 
   return (
     <div className="grid gap-6">
-      {sp.created === "1" && <Notice tone="success">Draft created! Next: upload art, add chapters, then create its rescue episode.</Notice>}
+      {sp.created === "1" && (
+        <Notice tone="success">Draft created! Next: upload art, add chapters, then create its rescue episode.</Notice>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <h1 className="font-display text-3xl font-bold">{animal.name}</h1>
           <StatusBadge status={animal.status} />
         </div>
         <div className="flex flex-wrap gap-2">
-          <ButtonLink href={`/animals/${animal.slug}`} size="sm" variant="light" target="_blank">👁 Preview public page</ButtonLink>
-          {animal.status !== "published" && <ActionButton action={setAnimalStatus.bind(null, id, "published")} label="Publish" variant="primary" />}
+          <ButtonLink href={`/animals/${animal.slug}`} size="sm" variant="light" target="_blank">
+            👁 Preview public page
+          </ButtonLink>
+          {animal.status !== "published" && (
+            <ActionButton action={setAnimalStatus.bind(null, id, "published")} label="Publish" variant="primary" />
+          )}
           {animal.status !== "coming_soon" && animal.status !== "published" && (
             <ActionButton action={setAnimalStatus.bind(null, id, "coming_soon")} label="Mark coming soon" />
           )}
@@ -63,9 +75,16 @@ export default async function EditAnimal({ params, searchParams }: PageProps<"/a
               confirm="Archive this animal? Existing players keep their adoptions; new adoptions stop."
             />
           )}
-          {animal.status === "archived" && <ActionButton action={setAnimalStatus.bind(null, id, "draft")} label="Restore to draft" />}
+          {animal.status === "archived" && (
+            <ActionButton action={setAnimalStatus.bind(null, id, "draft")} label="Restore to draft" />
+          )}
           {animal.status === "draft" && (
-            <ActionButton action={deleteDraftAnimal.bind(null, id)} label="Delete draft" variant="danger" confirm="Delete this draft permanently?" />
+            <ActionButton
+              action={deleteDraftAnimal.bind(null, id)}
+              label="Delete draft"
+              variant="danger"
+              confirm="Delete this draft permanently?"
+            />
           )}
         </div>
       </div>
@@ -92,12 +111,16 @@ export default async function EditAnimal({ params, searchParams }: PageProps<"/a
             <ul className="mt-2 grid gap-1 text-sm">
               {rescues.map((r) => (
                 <li key={r.id} className="flex items-center justify-between gap-2">
-                  <Link href={`/admin/rescues/${r.id}`} className="font-bold text-forest hover:underline">{r.title}</Link>
+                  <Link href={`/admin/rescues/${r.id}`} className="font-bold text-forest hover:underline">
+                    {r.title}
+                  </Link>
                   <StatusBadge status={r.status} />
                 </li>
               ))}
             </ul>
-            <ButtonLink href={`/admin/rescues/new?animal=${id}`} size="sm" variant="honey" className="mt-3">+ Rescue episode</ButtonLink>
+            <ButtonLink href={`/admin/rescues/new?animal=${id}`} size="sm" variant="honey" className="mt-3">
+              + Rescue episode
+            </ButtonLink>
           </Card>
         </div>
       </div>
@@ -112,7 +135,10 @@ export default async function EditAnimal({ params, searchParams }: PageProps<"/a
         <AssetUploader animalId={id} animalSlug={animal.slug} />
         <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {assets.map((a) => (
-            <li key={a.id} className={`rounded-2xl p-3 ring-1 ${a.is_active ? "bg-white ring-forest/40" : "bg-cream ring-ink/10 opacity-70"}`}>
+            <li
+              key={a.id}
+              className={`rounded-2xl p-3 ring-1 ${a.is_active ? "bg-white ring-forest/40" : "bg-cream ring-ink/10 opacity-70"}`}
+            >
               <div className="grid aspect-video place-items-center overflow-hidden rounded-xl bg-sage">
                 {a.media_kind === "video" ? (
                   <video src={a.public_url} muted loop autoPlay playsInline className="h-full w-full object-contain" />
@@ -121,12 +147,24 @@ export default async function EditAnimal({ params, searchParams }: PageProps<"/a
                   <img src={a.public_url} alt={a.alt_text} className="h-full w-full object-contain" />
                 )}
               </div>
-              <p className="mt-2 text-sm font-bold">{a.state} {a.is_active ? "· live" : "· inactive"}</p>
-              <p className="text-xs text-ink-soft">{a.mime_type} · {a.width ?? "?"}×{a.height ?? "?"} · {Math.round((a.byte_size ?? 0) / 1024)} KB</p>
+              <p className="mt-2 text-sm font-bold">
+                {a.state} {a.is_active ? "· live" : "· inactive"}
+              </p>
+              <p className="text-xs text-ink-soft">
+                {a.mime_type} · {a.width ?? "?"}×{a.height ?? "?"} · {Math.round((a.byte_size ?? 0) / 1024)} KB
+              </p>
               <p className="mt-1 line-clamp-2 text-xs">Alt: {a.alt_text}</p>
               <div className="mt-2 flex gap-2">
-                <ActionButton action={setAssetActive.bind(null, a.id, !a.is_active)} label={a.is_active ? "Deactivate" : "Make live"} />
-                <ActionButton action={deleteAsset.bind(null, a.id)} label="Delete" variant="danger" confirm="Delete this file?" />
+                <ActionButton
+                  action={setAssetActive.bind(null, a.id, !a.is_active)}
+                  label={a.is_active ? "Deactivate" : "Make live"}
+                />
+                <ActionButton
+                  action={deleteAsset.bind(null, a.id)}
+                  label="Delete"
+                  variant="danger"
+                  confirm="Delete this file?"
+                />
               </div>
             </li>
           ))}
@@ -139,14 +177,22 @@ export default async function EditAnimal({ params, searchParams }: PageProps<"/a
           {chapters.map((c) => (
             <details key={c.id} className="rounded-2xl bg-cream p-4">
               <summary className="cursor-pointer font-bold">
-                Chapter {c.ordinal}: {c.title} <span className="font-normal text-ink-soft">· {c.phase} · unlocks at {c.unlock_bond_xp} XP</span>
+                Chapter {c.ordinal}: {c.title}{" "}
+                <span className="font-normal text-ink-soft">
+                  · {c.phase} · unlocks at {c.unlock_bond_xp} XP
+                </span>
               </summary>
               <div className="mt-3">
                 <ActionForm action={saveChapter.bind(null, id, c.id)}>
                   <ChapterFields chapter={c} />
                 </ActionForm>
                 <div className="mt-2">
-                  <ActionButton action={deleteChapter.bind(null, id, c.id)} label="Delete chapter" variant="danger" confirm="Delete this chapter? Players lose access to its text." />
+                  <ActionButton
+                    action={deleteChapter.bind(null, id, c.id)}
+                    label="Delete chapter"
+                    variant="danger"
+                    confirm="Delete this chapter? Players lose access to its text."
+                  />
                 </div>
               </div>
             </details>
@@ -166,21 +212,48 @@ export default async function EditAnimal({ params, searchParams }: PageProps<"/a
 function ChapterFields({ chapter, ordinal }: { chapter?: Chapter; ordinal?: number }) {
   return (
     <div className="grid gap-3 md:grid-cols-3">
-      <Field label="Number"><input type="number" name="ordinal" min={1} max={20} defaultValue={chapter?.ordinal ?? ordinal} className={adminInput} /></Field>
+      <Field label="Number">
+        <input
+          type="number"
+          name="ordinal"
+          min={1}
+          max={20}
+          defaultValue={chapter?.ordinal ?? ordinal}
+          className={adminInput}
+        />
+      </Field>
       <Field label="Phase">
         <select name="phase" defaultValue={chapter?.phase ?? "arrival"} className={adminInput}>
           {PHASES.map((p) => (
-            <option key={p.id} value={p.id}>{p.label}</option>
+            <option key={p.id} value={p.id}>
+              {p.label}
+            </option>
           ))}
         </select>
       </Field>
-      <Field label="Unlocks at bond XP"><input type="number" name="unlock_bond_xp" min={0} defaultValue={chapter?.unlock_bond_xp ?? 0} className={adminInput} /></Field>
+      <Field label="Unlocks at bond XP">
+        <input
+          type="number"
+          name="unlock_bond_xp"
+          min={0}
+          defaultValue={chapter?.unlock_bond_xp ?? 0}
+          className={adminInput}
+        />
+      </Field>
       <div className="md:col-span-3">
-        <Field label="Title"><input name="title" maxLength={80} required defaultValue={chapter?.title} className={adminInput} /></Field>
+        <Field label="Title">
+          <input name="title" maxLength={80} required defaultValue={chapter?.title} className={adminInput} />
+        </Field>
       </div>
       <div className="md:col-span-3">
         <Field label="Chapter text (fictional, gentle — no distressing detail)">
-          <textarea name="body" maxLength={4000} required defaultValue={chapter?.body} className={`${adminInput} min-h-32`} />
+          <textarea
+            name="body"
+            maxLength={4000}
+            required
+            defaultValue={chapter?.body}
+            className={`${adminInput} min-h-32`}
+          />
         </Field>
       </div>
     </div>

@@ -3,9 +3,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_ECONOMY } from "@/lib/game";
 import { many, one } from "@/lib/data/db";
-import type {
-  Animal, ChapterOutline, Decor, Economy, Habitat, LaunchSettings, RescueStory,
-} from "@/lib/types";
+import type { Animal, ChapterOutline, Decor, Economy, Habitat, LaunchSettings, RescueStory } from "@/lib/types";
 
 // Public catalog reads. They run with the visitor's session, so RLS decides
 // visibility: visitors see published/coming-soon content, editors also see drafts.
@@ -14,14 +12,20 @@ const ANIMAL_FIELDS = "*, animal_assets(*)";
 
 export const getLaunchSettings = cache(async (): Promise<LaunchSettings> => {
   const supabase = await createClient();
-  const row = one(await supabase.from("app_settings").select("value").eq("key", "launch").maybeSingle(), "launch settings");
+  const row = one(
+    await supabase.from("app_settings").select("value").eq("key", "launch").maybeSingle(),
+    "launch settings",
+  );
   const value = (row?.value ?? {}) as Partial<LaunchSettings>;
   return { mode: value.mode === "open" ? "open" : "waitlist", featured_animal_slug: value.featured_animal_slug };
 });
 
 export const getEconomy = cache(async (): Promise<Economy> => {
   const supabase = await createClient();
-  const row = one(await supabase.from("app_settings").select("value").eq("key", "economy").maybeSingle(), "economy settings");
+  const row = one(
+    await supabase.from("app_settings").select("value").eq("key", "economy").maybeSingle(),
+    "economy settings",
+  );
   return { ...DEFAULT_ECONOMY, ...((row?.value ?? {}) as Partial<Economy>) };
 });
 
@@ -39,7 +43,10 @@ export const listCatalogAnimals = cache(async (): Promise<Animal[]> => {
 
 export const getAnimalBySlug = cache(async (slug: string): Promise<Animal | null> => {
   const supabase = await createClient();
-  return one(await supabase.from("animals").select(ANIMAL_FIELDS).eq("slug", slug).maybeSingle(), "animal by slug") as Animal | null;
+  return one(
+    await supabase.from("animals").select(ANIMAL_FIELDS).eq("slug", slug).maybeSingle(),
+    "animal by slug",
+  ) as Animal | null;
 });
 
 export const getRescueBySlug = cache(async (slug: string) => {
@@ -77,7 +84,10 @@ export const listPublishedRescues = cache(async () => {
 
 export const getChapterOutline = cache(async (animalId: string): Promise<ChapterOutline[]> => {
   const supabase = await createClient();
-  return many(await supabase.rpc("animal_chapter_outline", { p_animal_id: animalId }), "chapter outline") as ChapterOutline[];
+  return many(
+    await supabase.rpc("animal_chapter_outline", { p_animal_id: animalId }),
+    "chapter outline",
+  ) as ChapterOutline[];
 });
 
 export const listDecor = cache(async (): Promise<Decor[]> => {

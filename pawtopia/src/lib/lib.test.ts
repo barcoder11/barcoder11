@@ -13,15 +13,34 @@ describe("sanitizeNext (open-redirect protection)", () => {
   ])("allows %s", (input, out) => expect(sanitizeNext(input)).toBe(out));
 
   it.each([
-    "https://evil.com", "//evil.com", "/\\evil.com", "javascript:alert(1)", "/app/../../etc", "/somewhere-else",
-    "%2F%2Fevil.com", "/app\n", "", null, undefined, "/" + "a".repeat(400),
+    "https://evil.com",
+    "//evil.com",
+    "/\\evil.com",
+    "javascript:alert(1)",
+    "/app/../../etc",
+    "/somewhere-else",
+    "%2F%2Fevil.com",
+    "/app\n",
+    "",
+    null,
+    undefined,
+    "/" + "a".repeat(400),
   ])("rejects %s", (input) => expect(sanitizeNext(input as string)).toBe("/app"));
 });
 
 describe("attribution", () => {
   it("captures first touch from rescue links only, sanitising values", () => {
-    const t = firstTouchFromUrl("/r/maple-flood-rescue", new URLSearchParams("utm_source=Instagram&utm_medium=reel&utm_campaign=maple<launch>&utm_content=reel_001"));
-    expect(t).toMatchObject({ rescue_slug: "maple-flood-rescue", source: "instagram", medium: "reel", campaign: "maplelaunch", content: "reel_001" });
+    const t = firstTouchFromUrl(
+      "/r/maple-flood-rescue",
+      new URLSearchParams("utm_source=Instagram&utm_medium=reel&utm_campaign=maple<launch>&utm_content=reel_001"),
+    );
+    expect(t).toMatchObject({
+      rescue_slug: "maple-flood-rescue",
+      source: "instagram",
+      medium: "reel",
+      campaign: "maplelaunch",
+      content: "reel_001",
+    });
     expect(firstTouchFromUrl("/animals/maple", new URLSearchParams("utm_source=x"))).toBeNull();
     expect(firstTouchFromUrl("/r/maple", new URLSearchParams())?.source).toBe("direct");
   });
@@ -41,8 +60,16 @@ describe("attribution", () => {
 
 describe("buildRescueLink", () => {
   it("builds platform-tagged links", () => {
-    const url = buildRescueLink({ siteUrl: "https://pawtopia.example", rescueSlug: "maple-flood-rescue", platform: "instagram", campaign: "Maple Launch", content: "reel 001" });
-    expect(url).toBe("https://pawtopia.example/r/maple-flood-rescue?utm_source=instagram&utm_medium=reel&utm_campaign=maple_launch&utm_content=reel_001");
+    const url = buildRescueLink({
+      siteUrl: "https://pawtopia.example",
+      rescueSlug: "maple-flood-rescue",
+      platform: "instagram",
+      campaign: "Maple Launch",
+      content: "reel 001",
+    });
+    expect(url).toBe(
+      "https://pawtopia.example/r/maple-flood-rescue?utm_source=instagram&utm_medium=reel&utm_campaign=maple_launch&utm_content=reel_001",
+    );
   });
 });
 
@@ -61,7 +88,9 @@ describe("game helpers", () => {
 describe("personalize", () => {
   it("replaces whole words only", async () => {
     const { personalize } = await import("./game");
-    expect(personalize("Acorn found an acorn. Acorns? Acorn!", "Acorn", "Pip")).toBe("Pip found an acorn. Acorns? Pip!");
+    expect(personalize("Acorn found an acorn. Acorns? Acorn!", "Acorn", "Pip")).toBe(
+      "Pip found an acorn. Acorns? Pip!",
+    );
     expect(personalize("Maple smiles.", "Maple", "Maple")).toBe("Maple smiles.");
     // Regex characters in names are literal: "Mr.Pip" must not match "MrXPip".
     expect(personalize("Mr.Pip naps. MrXPip naps.", "Mr.Pip", "Bo")).toBe("Bo naps. MrXPip naps.");
@@ -71,9 +100,16 @@ describe("personalize", () => {
 describe("toCsv", () => {
   it("quotes, escapes and neutralises formulas", async () => {
     const { toCsv } = await import("./csv");
-    expect(toCsv(["email", "note"], [["a@b.co", 'say "hi", ok'], ["=HYPERLINK(1)", null], ["-1+2", "line\nbreak"]])).toBe(
-      'email,note\r\na@b.co,"say ""hi"", ok"\r\n\'=HYPERLINK(1),\r\n\'-1+2,"line\nbreak"\r\n',
-    );
+    expect(
+      toCsv(
+        ["email", "note"],
+        [
+          ["a@b.co", 'say "hi", ok'],
+          ["=HYPERLINK(1)", null],
+          ["-1+2", "line\nbreak"],
+        ],
+      ),
+    ).toBe('email,note\r\na@b.co,"say ""hi"", ok"\r\n\'=HYPERLINK(1),\r\n\'-1+2,"line\nbreak"\r\n');
   });
 });
 
@@ -142,7 +178,9 @@ describe("authErrorMessage", () => {
     const expired = { status: 403, code: "otp_expired", message: "Token has expired or is invalid" };
     expect(authErrorMessage(expired, "code")).toMatch(/code didn't work/);
     expect(authErrorMessage(expired, "link")).toMatch(/link has expired/);
-    expect(authErrorMessage({ status: 500, message: "Error sending magic link email" }, "email")).toMatch(/couldn't send/);
+    expect(authErrorMessage({ status: 500, message: "Error sending magic link email" }, "email")).toMatch(
+      /couldn't send/,
+    );
     for (const step of ["email", "code", "link"] as const) {
       expect(authErrorMessage(expired, step)).not.toContain("Token");
     }

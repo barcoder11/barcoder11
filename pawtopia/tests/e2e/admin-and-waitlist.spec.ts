@@ -13,7 +13,9 @@ test("admin publishes a brand-new animal + rescue and gets share links, without 
   await signInWithCode(page, email);
   await completeOnboarding(page, "Creator");
   await pool.query(
-    `insert into public.app_roles (user_id, role, granted_by) select id, 'admin', 'e2e' from auth.users where email = $1`, [email]);
+    `insert into public.app_roles (user_id, role, granted_by) select id, 'admin', 'e2e' from auth.users where email = $1`,
+    [email],
+  );
 
   const slug = `hazel-${Date.now().toString(36)}`;
   await page.goto("/admin/animals/new");
@@ -26,7 +28,13 @@ test("admin publishes a brand-new animal + rescue and gets share links, without 
 
   // Upload a real PNG to Supabase Storage.
   const png = path.join(os.tmpdir(), `hazel-${Date.now()}.png`);
-  fs.writeFileSync(png, Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64"));
+  fs.writeFileSync(
+    png,
+    Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      "base64",
+    ),
+  );
   await page.getByTestId("asset-file").setInputFiles(png);
   await page.getByLabel("Alt text *").fill("Hazel the hedgehog curled in leaves");
   await page.getByRole("button", { name: "Upload asset" }).click();
@@ -104,7 +112,9 @@ test("admin adds a decoration to the shop and exports the confirmed waitlist", a
   await signInWithCode(page, adminEmail);
   await completeOnboarding(page, "Curator");
   await pool.query(
-    `insert into public.app_roles (user_id, role, granted_by) select id, 'admin', 'e2e' from auth.users where email = $1`, [adminEmail]);
+    `insert into public.app_roles (user_id, role, granted_by) select id, 'admin', 'e2e' from auth.users where email = $1`,
+    [adminEmail],
+  );
 
   // New shop item, no code changes.
   const slug = `honey-pot-${Date.now().toString(36)}`;

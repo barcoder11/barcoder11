@@ -1,11 +1,11 @@
 # Tests
 
-| Command | What | Needs |
-|---|---|---|
-| `npm test` | Unit tests (redirect safety, attribution, links, game math) | nothing |
-| `npm run test:db` | DB integration: RLS, economy, idempotency, concurrency, admin, waitlist | a running stack |
-| `PAWTOPIA_STORAGE_TESTS=1 npm run test:db` | + Storage upload permissions | stack with Storage |
-| `npm run test:e2e` | Playwright flows at 360 px | app running (`npm run build && npm start`) + stack + mailbox API |
+| Command                                    | What                                                                    | Needs                                                            |
+| ------------------------------------------ | ----------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `npm test`                                 | Unit tests (redirect safety, attribution, links, game math)             | nothing                                                          |
+| `npm run test:db`                          | DB integration: RLS, economy, idempotency, concurrency, admin, waitlist | a running stack                                                  |
+| `PAWTOPIA_STORAGE_TESTS=1 npm run test:db` | + Storage upload permissions                                            | stack with Storage                                               |
+| `npm run test:e2e`                         | Playwright flows at 360 px                                              | app running (`npm run build && npm start`) + stack + mailbox API |
 
 ## Which stack?
 

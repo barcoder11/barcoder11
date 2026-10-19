@@ -1,14 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import crypto from "node:crypto";
-import {
-  anonClient,
-  createUser,
-  dbTestsEnabled,
-  pool,
-  serviceClient,
-  setLaunchMode,
-  type TestUser,
-} from "./helpers";
+import { anonClient, createUser, dbTestsEnabled, pool, serviceClient, setLaunchMode, type TestUser } from "./helpers";
 
 const storageEnabled = process.env.PAWTOPIA_STORAGE_TESTS === "1";
 const sha = (s: string) => crypto.createHash("sha256").update(s).digest("hex");
@@ -35,7 +27,11 @@ describe.skipIf(!dbTestsEnabled)("admin protection", () => {
     expect((await player.db.rpc("admin_funnel", {})).error).not.toBeNull();
     const ins = await player.db.from("animals").insert({ slug: "evil", name: "Evil", species: "x" });
     expect(ins.error).not.toBeNull();
-    const upd = await player.db.from("app_settings").update({ value: { mode: "waitlist" } }).eq("key", "launch").select();
+    const upd = await player.db
+      .from("app_settings")
+      .update({ value: { mode: "waitlist" } })
+      .eq("key", "launch")
+      .select();
     expect(upd.data ?? []).toHaveLength(0);
     const { data: waitlist } = await player.db.from("waitlist_entries").select("*");
     expect(waitlist ?? []).toHaveLength(0);
@@ -46,8 +42,13 @@ describe.skipIf(!dbTestsEnabled)("admin protection", () => {
     const { data: animal, error } = await admin.db
       .from("animals")
       .insert({
-        slug, name: "Fern", species: "Hedgehog", placeholder_style: "generic",
-        habitat_slug: "forest-glade", bio: "A prickly but gentle hedgehog.", status: "draft",
+        slug,
+        name: "Fern",
+        species: "Hedgehog",
+        placeholder_style: "generic",
+        habitat_slug: "forest-glade",
+        bio: "A prickly but gentle hedgehog.",
+        status: "draft",
       })
       .select()
       .single();
@@ -71,7 +72,11 @@ describe.skipIf(!dbTestsEnabled)("admin protection", () => {
 
     const { data: pub } = await admin.db.rpc("admin_publish_rescue", { p_rescue_id: rescue!.id });
     expect(pub.status).toBe("published");
-    const { data: live } = await anonClient().from("rescue_stories").select("slug, animals(status)").eq("id", rescue!.id).single();
+    const { data: live } = await anonClient()
+      .from("rescue_stories")
+      .select("slug, animals(status)")
+      .eq("id", rescue!.id)
+      .single();
     expect((live!.animals as any).status).toBe("published");
 
     // A player adopts Fern; archiving later keeps the adoption and the player's view.
@@ -82,14 +87,19 @@ describe.skipIf(!dbTestsEnabled)("admin protection", () => {
     expect(playerView).toHaveLength(1);
     const { data: stranger } = await anonClient().from("animals").select("slug").eq("slug", slug);
     expect(stranger).toHaveLength(0);
-    const { rows } = await pool.query(`select count(*)::int n from public.user_animals where id = $1`, [adopted.user_animal_id]);
+    const { rows } = await pool.query(`select count(*)::int n from public.user_animals where id = $1`, [
+      adopted.user_animal_id,
+    ]);
     expect(rows[0].n).toBe(1);
     // Animals with adoptions can't be deleted.
     const del = await admin.db.from("animals").delete().eq("id", animal!.id).select();
     expect(del.data ?? []).toHaveLength(0);
 
     // Audit trail captured the admin's changes.
-    const { data: audit } = await admin.db.from("admin_audit_logs").select("action, entity_type").eq("entity_id", animal!.id);
+    const { data: audit } = await admin.db
+      .from("admin_audit_logs")
+      .select("action, entity_type")
+      .eq("entity_id", animal!.id);
     expect(audit!.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -109,7 +119,12 @@ describe.skipIf(!dbTestsEnabled)("admin protection", () => {
 describe.skipIf(!dbTestsEnabled)("waitlist", () => {
   it("is only writable by the server (service role)", async () => {
     const r = await anonClient().rpc("waitlist_upsert", {
-      p_email: "x@example.test", p_token_hash: "a", p_unsubscribe_hash: "b", p_opt_in: false, p_source: {}, p_client_key: "k",
+      p_email: "x@example.test",
+      p_token_hash: "a",
+      p_unsubscribe_hash: "b",
+      p_opt_in: false,
+      p_source: {},
+      p_client_key: "k",
     });
     expect(r.error).not.toBeNull();
   });
@@ -120,26 +135,44 @@ describe.skipIf(!dbTestsEnabled)("waitlist", () => {
     const tok = crypto.randomUUID();
     const unsub = crypto.randomUUID();
     const first = await svc.rpc("waitlist_upsert", {
-      p_email: email, p_token_hash: sha(tok), p_unsubscribe_hash: sha(unsub), p_opt_in: true, p_source: { source: "instagram" },
+      p_email: email,
+      p_token_hash: sha(tok),
+      p_unsubscribe_hash: sha(unsub),
+      p_opt_in: true,
+      p_source: { source: "instagram" },
       p_client_key: `test:${crypto.randomUUID()}`,
     });
     expect(first.data.action).toBe("send");
     // Immediate duplicate (any casing) is rate limited -> skip, no second email.
     const dup = await svc.rpc("waitlist_upsert", {
-      p_email: email.toLowerCase(), p_token_hash: sha("other"), p_unsubscribe_hash: sha("other2"), p_opt_in: false, p_source: {},
+      p_email: email.toLowerCase(),
+      p_token_hash: sha("other"),
+      p_unsubscribe_hash: sha("other2"),
+      p_opt_in: false,
+      p_source: {},
       p_client_key: `test:${crypto.randomUUID()}`,
     });
     expect(dup.data.action).toBe("skip");
-    const { rows } = await pool.query(`select count(*)::int n from public.waitlist_entries where normalized_email = $1`, [email.toLowerCase()]);
+    const { rows } = await pool.query(
+      `select count(*)::int n from public.waitlist_entries where normalized_email = $1`,
+      [email.toLowerCase()],
+    );
     expect(rows[0].n).toBe(1);
 
     expect((await svc.rpc("waitlist_verify", { p_token_hash: sha("wrong") })).data.status).toBe("invalid");
     expect((await svc.rpc("waitlist_verify", { p_token_hash: sha(tok) })).data.status).toBe("verified");
     expect((await svc.rpc("waitlist_verify", { p_token_hash: sha(tok) })).data.status).toBe("invalid"); // single use
 
-    expect((await svc.rpc("waitlist_unsubscribe", { p_unsubscribe_hash: sha(unsub), p_delete: false })).data.status).toBe("unsubscribed");
-    expect((await svc.rpc("waitlist_unsubscribe", { p_unsubscribe_hash: sha(unsub), p_delete: true })).data.status).toBe("deleted");
-    const { rows: after } = await pool.query(`select count(*)::int n from public.waitlist_entries where normalized_email = $1`, [email.toLowerCase()]);
+    expect(
+      (await svc.rpc("waitlist_unsubscribe", { p_unsubscribe_hash: sha(unsub), p_delete: false })).data.status,
+    ).toBe("unsubscribed");
+    expect(
+      (await svc.rpc("waitlist_unsubscribe", { p_unsubscribe_hash: sha(unsub), p_delete: true })).data.status,
+    ).toBe("deleted");
+    const { rows: after } = await pool.query(
+      `select count(*)::int n from public.waitlist_entries where normalized_email = $1`,
+      [email.toLowerCase()],
+    );
     expect(after[0].n).toBe(0);
   });
 });
@@ -149,7 +182,12 @@ describe.skipIf(!dbTestsEnabled)("admin tools", () => {
     const admin = await createUser({ admin: true });
     const player = await createUser();
     const fan = await createUser();
-    await fan.db.rpc("update_profile", { p_display_name: "Fan", p_timezone: "UTC", p_marketing_opt_in: true, p_reduced_motion: false });
+    await fan.db.rpc("update_profile", {
+      p_display_name: "Fan",
+      p_timezone: "UTC",
+      p_marketing_opt_in: true,
+      p_reduced_motion: false,
+    });
     const confirmed = `confirmed-${crypto.randomUUID().slice(0, 6)}@example.test`;
     const pending = `pending-${crypto.randomUUID().slice(0, 6)}@example.test`;
     await pool.query(
@@ -182,7 +220,10 @@ describe.skipIf(!dbTestsEnabled)("admin tools", () => {
     const admin = await createUser({ admin: true });
     const player = await createUser();
     const email = `del-${crypto.randomUUID().slice(0, 6)}@example.test`;
-    const { rows } = await pool.query(`insert into public.waitlist_entries (email, normalized_email) values ($1, $1) returning id`, [email]);
+    const { rows } = await pool.query(
+      `insert into public.waitlist_entries (email, normalized_email) values ($1, $1) returning id`,
+      [email],
+    );
     expect((await player.db.rpc("admin_delete_waitlist_entry", { p_id: rows[0].id })).error).not.toBeNull();
     expect((await admin.db.rpc("admin_delete_waitlist_entry", { p_id: rows[0].id })).data.status).toBe("deleted");
 
@@ -200,8 +241,12 @@ describe.skipIf(!dbTestsEnabled)("abuse protection and retention", () => {
     const actions: string[] = [];
     for (let i = 0; i < 9; i++) {
       const { data } = await svc.rpc("waitlist_upsert", {
-        p_email: `flood-${i}-${crypto.randomUUID().slice(0, 6)}@example.test`, p_token_hash: sha(`t${i}`),
-        p_unsubscribe_hash: sha(`u${i}`), p_opt_in: false, p_source: {}, p_client_key: key,
+        p_email: `flood-${i}-${crypto.randomUUID().slice(0, 6)}@example.test`,
+        p_token_hash: sha(`t${i}`),
+        p_unsubscribe_hash: sha(`u${i}`),
+        p_opt_in: false,
+        p_source: {},
+        p_client_key: key,
       });
       actions.push(data.action);
     }
@@ -221,15 +266,22 @@ describe.skipIf(!dbTestsEnabled)("abuse protection and retention", () => {
       `insert into public.waitlist_entries (email, normalized_email, created_at) values ($1, $1, now() - interval '40 days')`,
       [staleEmail],
     );
-    await pool.query(`insert into public.rate_limits (bucket, window_start, hits) values ('test:old', now() - interval '3 days', 1)`);
+    await pool.query(
+      `insert into public.rate_limits (bucket, window_start, hits) values ('test:old', now() - interval '3 days', 1)`,
+    );
     const { data, error } = await serviceClient().rpc("run_maintenance");
     expect(error).toBeNull();
     expect(data.old_anonymous_events_deleted).toBeGreaterThanOrEqual(1);
     expect(data.stale_waitlist_deleted).toBeGreaterThanOrEqual(1);
     expect(data.rate_limit_rows_deleted).toBeGreaterThanOrEqual(1);
-    const { rows } = await pool.query(`select count(*)::int n from public.attribution_events where anonymous_id = $1`, [oldAnon]);
+    const { rows } = await pool.query(`select count(*)::int n from public.attribution_events where anonymous_id = $1`, [
+      oldAnon,
+    ]);
     expect(rows[0].n).toBe(0);
-    const { rows: w } = await pool.query(`select count(*)::int n from public.waitlist_entries where normalized_email = $1`, [staleEmail]);
+    const { rows: w } = await pool.query(
+      `select count(*)::int n from public.waitlist_entries where normalized_email = $1`,
+      [staleEmail],
+    );
     expect(w[0].n).toBe(0);
   });
 });
@@ -253,10 +305,14 @@ describe.skipIf(!dbTestsEnabled || !storageEnabled)("media storage", () => {
 
     const svg = await admin.db.storage
       .from("pawtopia-media")
-      .upload(`animals/maple/x-${crypto.randomUUID()}.svg`, Buffer.from("<svg onload=alert(1)>"), { contentType: "image/svg+xml" });
+      .upload(`animals/maple/x-${crypto.randomUUID()}.svg`, Buffer.from("<svg onload=alert(1)>"), {
+        contentType: "image/svg+xml",
+      });
     expect(svg.error).not.toBeNull();
 
-    const outside = await admin.db.storage.from("pawtopia-media").upload(`elsewhere/${crypto.randomUUID()}.png`, png, { contentType: "image/png" });
+    const outside = await admin.db.storage
+      .from("pawtopia-media")
+      .upload(`elsewhere/${crypto.randomUUID()}.png`, png, { contentType: "image/png" });
     expect(outside.error).not.toBeNull();
 
     // Public URL is readable without auth.

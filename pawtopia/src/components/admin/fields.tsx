@@ -21,7 +21,9 @@ export function StatusBadge({ status }: { status: string }) {
     archived: "bg-ink/10 text-ink-soft",
   };
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-extrabold uppercase tracking-wide ${tone[status] ?? "bg-sage"}`}>
+    <span
+      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-extrabold uppercase tracking-wide ${tone[status] ?? "bg-sage"}`}
+    >
       {status.replace("_", " ")}
     </span>
   );

@@ -15,8 +15,17 @@ export function DecorArt({ artKey, title, className = "" }: { artKey: string; ti
 const ART: Record<string, React.ReactNode> = {
   blanket: (
     <g>
-      <path d="M14 92 C20 74 40 70 60 72 C82 70 100 74 106 92 C100 106 80 110 60 108 C40 110 20 106 14 92 Z" fill="#E7A4A0" />
-      <path d="M22 90 C32 82 46 80 60 81 C76 80 90 82 98 90" stroke="#FFF8EC" strokeWidth="3" fill="none" strokeDasharray="4 5" />
+      <path
+        d="M14 92 C20 74 40 70 60 72 C82 70 100 74 106 92 C100 106 80 110 60 108 C40 110 20 106 14 92 Z"
+        fill="#E7A4A0"
+      />
+      <path
+        d="M22 90 C32 82 46 80 60 81 C76 80 90 82 98 90"
+        stroke="#FFF8EC"
+        strokeWidth="3"
+        fill="none"
+        strokeDasharray="4 5"
+      />
       <path d="M30 98 C44 94 76 94 90 98" stroke="#C97C78" strokeWidth="3" fill="none" />
       <circle cx="40" cy="88" r="3" fill="#FFF8EC" />
       <circle cx="80" cy="88" r="3" fill="#FFF8EC" />
@@ -35,12 +44,29 @@ const ART: Record<string, React.ReactNode> = {
   ),
   flowers: (
     <g>
-      <path d="M30 110 C34 90 34 80 36 70 M60 110 V60 M90 110 C86 92 86 82 84 72" stroke="#3E7C4F" strokeWidth="4" strokeLinecap="round" />
+      <path
+        d="M30 110 C34 90 34 80 36 70 M60 110 V60 M90 110 C86 92 86 82 84 72"
+        stroke="#3E7C4F"
+        strokeWidth="4"
+        strokeLinecap="round"
+      />
       <path d="M44 100 C50 92 56 92 60 96 M76 100 C70 92 64 92 60 96" stroke="#3E7C4F" strokeWidth="4" fill="none" />
-      {[[36, 64, "#FFF8EC"], [60, 52, "#8FB3E8"], [84, 66, "#FFF8EC"]].map(([x, y, col]) => (
+      {[
+        [36, 64, "#FFF8EC"],
+        [60, 52, "#8FB3E8"],
+        [84, 66, "#FFF8EC"],
+      ].map(([x, y, col]) => (
         <g key={String(x)}>
           {[0, 72, 144, 216, 288].map((a) => (
-            <ellipse key={a} cx={Number(x)} cy={Number(y) - 8} rx="5" ry="8" fill={String(col)} transform={`rotate(${a} ${x} ${y})`} />
+            <ellipse
+              key={a}
+              cx={Number(x)}
+              cy={Number(y) - 8}
+              rx="5"
+              ry="8"
+              fill={String(col)}
+              transform={`rotate(${a} ${x} ${y})`}
+            />
           ))}
           <circle cx={Number(x)} cy={Number(y)} r="5" fill="#EDBC78" />
         </g>
@@ -69,8 +95,18 @@ const ART: Record<string, React.ReactNode> = {
   bunting: (
     <g>
       <path d="M0 10 C30 30 90 30 120 10" stroke="#5E4634" strokeWidth="2" fill="none" />
-      {[[12, 16, "#E8A33D"], [34, 23, "#A86548"], [60, 26, "#5E9B75"], [86, 23, "#E8A33D"], [108, 16, "#A86548"]].map(([x, y, col]) => (
-        <path key={String(x)} d={`M${Number(x) - 8} ${y} L${Number(x) + 8} ${y} L${x} ${Number(y) + 20} Z`} fill={String(col)} />
+      {[
+        [12, 16, "#E8A33D"],
+        [34, 23, "#A86548"],
+        [60, 26, "#5E9B75"],
+        [86, 23, "#E8A33D"],
+        [108, 16, "#A86548"],
+      ].map(([x, y, col]) => (
+        <path
+          key={String(x)}
+          d={`M${Number(x) - 8} ${y} L${Number(x) + 8} ${y} L${x} ${Number(y) + 20} Z`}
+          fill={String(col)}
+        />
       ))}
     </g>
   ),
@@ -89,7 +125,13 @@ const ART: Record<string, React.ReactNode> = {
       <path d="M8 104 C8 66 34 46 60 46 C86 46 112 66 112 104 Z" fill="#8A5A3B" />
       <path d="M8 104 C8 66 34 46 60 46 C86 46 112 66 112 104" stroke="#6B4429" strokeWidth="4" fill="none" />
       <path d="M34 104 C34 82 46 72 60 72 C74 72 86 82 86 104 Z" fill="#3B2A25" />
-      <path d="M14 76 C30 70 40 58 52 52 M66 50 C80 54 96 66 104 78" stroke="#5E9B75" strokeWidth="6" strokeLinecap="round" fill="none" />
+      <path
+        d="M14 76 C30 70 40 58 52 52 M66 50 C80 54 96 66 104 78"
+        stroke="#5E9B75"
+        strokeWidth="6"
+        strokeLinecap="round"
+        fill="none"
+      />
       <circle cx="22" cy="98" r="5" fill="#E8D9B5" />
     </g>
   ),
@@ -107,7 +149,12 @@ const ART: Record<string, React.ReactNode> = {
         <circle cx="55" cy="80" r="1.2" fill="#183027" />
         <circle cx="61" cy="80" r="1.2" fill="#183027" />
       </g>
-      <path d="M8 92 C6 70 10 60 14 52 M112 92 C114 72 110 62 106 54" stroke="#5E9B75" strokeWidth="4" strokeLinecap="round" />
+      <path
+        d="M8 92 C6 70 10 60 14 52 M112 92 C114 72 110 62 106 54"
+        stroke="#5E9B75"
+        strokeWidth="4"
+        strokeLinecap="round"
+      />
     </g>
   ),
   generic: (

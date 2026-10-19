@@ -61,5 +61,8 @@ export async function completeOnboarding(page: Page, name = "Sam") {
 }
 
 export async function setLaunchMode(mode: "open" | "waitlist") {
-  await pool.query(`update public.app_settings set value = jsonb_set(value, '{mode}', to_jsonb($1::text)) where key = 'launch'`, [mode]);
+  await pool.query(
+    `update public.app_settings set value = jsonb_set(value, '{mode}', to_jsonb($1::text)) where key = 'launch'`,
+    [mode],
+  );
 }

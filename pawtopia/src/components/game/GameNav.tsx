@@ -32,7 +32,10 @@ export function BottomNav() {
                 aria-current={active ? "page" : undefined}
                 className={`flex min-h-16 flex-col items-center justify-center gap-0.5 text-[11px] font-extrabold ${active ? "text-forest" : "text-ink-soft"}`}
               >
-                <span className={`grid h-8 w-12 place-items-center rounded-full text-xl transition ${active ? "bg-sage" : ""}`} aria-hidden="true">
+                <span
+                  className={`grid h-8 w-12 place-items-center rounded-full text-xl transition ${active ? "bg-sage" : ""}`}
+                  aria-hidden="true"
+                >
                   {item.icon}
                 </span>
                 {item.label}
@@ -67,7 +70,10 @@ export function SideNav({ isEditor }: { isEditor: boolean }) {
         })}
         {isEditor && (
           <li className="mt-4">
-            <Link href="/admin" className="flex items-center gap-3 rounded-2xl px-4 py-3 font-bold text-terracotta hover:bg-sage">
+            <Link
+              href="/admin"
+              className="flex items-center gap-3 rounded-2xl px-4 py-3 font-bold text-terracotta hover:bg-sage"
+            >
               <span aria-hidden="true">🛠️</span> Creator admin
             </Link>
           </li>

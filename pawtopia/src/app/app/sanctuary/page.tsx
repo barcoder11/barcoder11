@@ -13,19 +13,19 @@ export default async function SanctuaryPage() {
     <>
       <SyncBalance value={balance} />
       <SanctuaryEditor
-      name={scene.name}
-      sceneStyle={scene.style}
-      slots={scene.slots}
-      placements={scene.placements}
-      inventory={scene.inventory}
-      decorBySlug={scene.decorBySlug}
-      residents={adoptions.map((a) => ({
-        id: a.id,
-        name: a.nickname || a.animals!.name,
-        animal: a.animals!,
-        assets: assetMap(a.animals!),
-      }))}
-    />
+        name={scene.name}
+        sceneStyle={scene.style}
+        slots={scene.slots}
+        placements={scene.placements}
+        inventory={scene.inventory}
+        decorBySlug={scene.decorBySlug}
+        residents={adoptions.map((a) => ({
+          id: a.id,
+          name: a.nickname || a.animals!.name,
+          animal: a.animals!,
+          assets: assetMap(a.animals!),
+        }))}
+      />
     </>
   );
 }

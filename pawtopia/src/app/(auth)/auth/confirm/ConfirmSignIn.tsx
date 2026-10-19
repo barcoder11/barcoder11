@@ -34,10 +34,19 @@ export function ConfirmSignIn({ tokenHash, type }: { tokenHash: string; type: Em
       {error ? (
         <div className="mt-6 grid gap-3">
           <Notice tone="error">{error}</Notice>
-          <Link href="/auth" className={buttonClass("primary", "md")}>Get a new code</Link>
+          <Link href="/auth" className={buttonClass("primary", "md")}>
+            Get a new code
+          </Link>
         </div>
       ) : (
-        <Button size="lg" className="mt-6 w-full" onClick={confirm} disabled={pending} autoFocus data-testid="confirm-sign-in">
+        <Button
+          size="lg"
+          className="mt-6 w-full"
+          onClick={confirm}
+          disabled={pending}
+          autoFocus
+          data-testid="confirm-sign-in"
+        >
           {pending ? "Signing you in…" : "🐾 Sign in to Pawtopia"}
         </Button>
       )}

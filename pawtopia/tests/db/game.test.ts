@@ -73,7 +73,11 @@ describe.skipIf(!dbTestsEnabled)("public catalog", () => {
     const db = anonClient();
     const r1 = await db.from("animals").insert({ slug: "hack", name: "Hack", species: "x" });
     expect(r1.error).not.toBeNull();
-    const r2 = await db.from("app_settings").update({ value: { mode: "open" } }).eq("key", "launch").select();
+    const r2 = await db
+      .from("app_settings")
+      .update({ value: { mode: "open" } })
+      .eq("key", "launch")
+      .select();
     expect(r2.data ?? []).toHaveLength(0);
     const r3 = await db.rpc("adopt_animal", { p_animal_slug: "maple", p_nickname: null });
     expect(r3.error).not.toBeNull();
@@ -164,11 +168,17 @@ describe.skipIf(!dbTestsEnabled)("care and rewards", () => {
   it("replaying the same idempotency key never pays twice", async () => {
     await ageCareActions(u.id, 3600);
     const key = uuid();
-    const [r1, r2, r3] = await Promise.all([care(u, ua, "snack", key), care(u, ua, "snack", key), care(u, ua, "snack", key)]);
+    const [r1, r2, r3] = await Promise.all([
+      care(u, ua, "snack", key),
+      care(u, ua, "snack", key),
+      care(u, ua, "snack", key),
+    ]);
     const statuses = [r1.status, r2.status, r3.status].sort();
     expect(statuses).toEqual(["ok", "replay", "replay"]);
     expect(await wallet(u)).toBe(60);
-    const { rows } = await pool.query(`select count(*)::int n from public.care_actions where idempotency_key = $1`, [key]);
+    const { rows } = await pool.query(`select count(*)::int n from public.care_actions where idempotency_key = $1`, [
+      key,
+    ]);
     expect(rows[0].n).toBe(1);
   });
 
@@ -222,11 +232,19 @@ describe.skipIf(!dbTestsEnabled)("care and rewards", () => {
     const r2 = await u.db.from("user_animals").update({ bond_xp: 9999 }).eq("id", ua).select();
     expect(r2.error ?? (r2.data?.length === 0 ? "blocked" : null)).not.toBeNull();
     const r3 = await u.db.from("currency_ledger").insert({
-      user_id: u.id, delta: 1000, balance_after: 1000, source_type: "hack", idempotency_key: uuid(),
+      user_id: u.id,
+      delta: 1000,
+      balance_after: 1000,
+      source_type: "hack",
+      idempotency_key: uuid(),
     });
     expect(r3.error).not.toBeNull();
     const r4 = await u.db.rpc("_credit", {
-      p_user: u.id, p_delta: 1000, p_source_type: "hack", p_source_id: "x", p_key: uuid(),
+      p_user: u.id,
+      p_delta: 1000,
+      p_source_type: "hack",
+      p_source_id: "x",
+      p_key: uuid(),
     });
     expect(r4.error).not.toBeNull();
     const { data } = await u.db.from("user_animals").select("bond_xp").eq("id", ua).single();
@@ -288,7 +306,10 @@ describe.skipIf(!dbTestsEnabled)("shop and sanctuary", () => {
     const results = await Promise.all([buy("flower-patch", key), buy("flower-patch", key), buy("flower-patch")]);
     expect(results.filter((r) => r.status === "purchased")).toHaveLength(1);
     expect(results.every((r) => ["purchased", "replay", "already_owned"].includes(r.status))).toBe(true);
-    const { data: inv } = await u.db.from("user_inventory").select("quantity, decor_catalog!inner(slug)").eq("decor_catalog.slug", "flower-patch");
+    const { data: inv } = await u.db
+      .from("user_inventory")
+      .select("quantity, decor_catalog!inner(slug)")
+      .eq("decor_catalog.slug", "flower-patch");
     expect(inv).toHaveLength(1);
     expect(inv![0].quantity).toBe(1);
   });
@@ -323,14 +344,24 @@ describe.skipIf(!dbTestsEnabled)("attribution", () => {
 
   it("can't be written through the public API (server only)", async () => {
     const r = await anonClient().rpc("track_event", {
-      p_event_type: "rescue_landing_viewed", p_anonymous_id: uuid(), p_user_id: null, p_rescue_slug: "maple-flood-rescue",
-      p_animal_slug: null, p_attribution: {}, p_client_key: "x",
+      p_event_type: "rescue_landing_viewed",
+      p_anonymous_id: uuid(),
+      p_user_id: null,
+      p_rescue_slug: "maple-flood-rescue",
+      p_animal_slug: null,
+      p_attribution: {},
+      p_client_key: "x",
     });
     expect(r.error).not.toBeNull();
     const player = await createUser();
     const r2 = await player.db.rpc("track_event", {
-      p_event_type: "rescue_landing_viewed", p_anonymous_id: uuid(), p_user_id: player.id, p_rescue_slug: null,
-      p_animal_slug: null, p_attribution: {}, p_client_key: "x",
+      p_event_type: "rescue_landing_viewed",
+      p_anonymous_id: uuid(),
+      p_user_id: player.id,
+      p_rescue_slug: null,
+      p_animal_slug: null,
+      p_attribution: {},
+      p_client_key: "x",
     });
     expect(r2.error).not.toBeNull();
   });
@@ -343,7 +374,10 @@ describe.skipIf(!dbTestsEnabled)("attribution", () => {
     };
     expect((await track(args)).data).toBe(true);
     expect((await track(args)).data).toBe(true);
-    const { rows } = await pool.query(`select source, campaign from public.attribution_events where anonymous_id = $1`, [anon]);
+    const { rows } = await pool.query(
+      `select source, campaign from public.attribution_events where anonymous_id = $1`,
+      [anon],
+    );
     expect(rows).toEqual([{ source: "instagram", campaign: "maple_launchscript" }]);
     expect((await track({ ...args, p_event_type: "animal_adopted" })).error).not.toBeNull();
   });

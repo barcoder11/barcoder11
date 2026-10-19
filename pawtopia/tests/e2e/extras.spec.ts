@@ -50,7 +50,11 @@ test("social preview images, app icons and the web manifest are served", async (
   expect(await manifest.json()).toMatchObject({ name: "Pawtopia", display: "standalone", start_url: "/app" });
 });
 
-test("landing visits are recorded through the server; the maintenance job requires its secret", async ({ page, context, request }) => {
+test("landing visits are recorded through the server; the maintenance job requires its secret", async ({
+  page,
+  context,
+  request,
+}) => {
   await page.goto("/r/maple-flood-rescue?utm_source=facebook&utm_campaign=e2e_track");
   await expect(page.getByTestId("animal-name")).toHaveText("Maple");
   const visitor = (await context.cookies()).find((c) => c.name === "pt_aid")?.value;
@@ -67,7 +71,9 @@ test("landing visits are recorded through the server; the maintenance job requir
     .toBe(1);
 
   expect((await request.get("/api/cron/maintenance")).status()).toBe(401);
-  expect((await request.get("/api/cron/maintenance", { headers: { authorization: "Bearer wrong" } })).status()).toBe(401);
+  expect((await request.get("/api/cron/maintenance", { headers: { authorization: "Bearer wrong" } })).status()).toBe(
+    401,
+  );
   const ok = await request.get("/api/cron/maintenance", {
     headers: { authorization: `Bearer ${process.env.E2E_CRON_SECRET ?? "local-cron-secret"}` },
   });
@@ -119,7 +125,8 @@ test("a quick second tap never swallows a pending chapter popup", async ({ page 
 test("strict Content-Security-Policy: nonce'd scripts run, nothing is blocked", async ({ page, request }) => {
   const violations: string[] = [];
   page.on("console", (msg) => {
-    if (/Content Security Policy|Refused to (load|execute|apply|connect)/i.test(msg.text())) violations.push(msg.text());
+    if (/Content Security Policy|Refused to (load|execute|apply|connect)/i.test(msg.text()))
+      violations.push(msg.text());
   });
   const res = await request.get("/r/maple-flood-rescue");
   const csp = res.headers()["content-security-policy"] ?? "";

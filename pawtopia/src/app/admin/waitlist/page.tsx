@@ -9,7 +9,14 @@ import { createClient } from "@/lib/supabase/server";
 
 const PAGE_SIZE = 50;
 
-type Entry = { id: string; email: string; status: string; promotional_opt_in: boolean; created_at: string; verified_at: string | null };
+type Entry = {
+  id: string;
+  email: string;
+  status: string;
+  promotional_opt_in: boolean;
+  created_at: string;
+  verified_at: string | null;
+};
 
 export default async function AdminWaitlist({ searchParams }: PageProps<"/admin/waitlist">) {
   await requireAdmin("/admin/waitlist");
@@ -40,25 +47,39 @@ export default async function AdminWaitlist({ searchParams }: PageProps<"/admin/
         </div>
         <div className="flex flex-wrap gap-2">
           {/* File downloads from route handlers, not page navigations — plain anchors are correct here. */}
-          <a href="/admin/export/waitlist" download className={buttonClass("light", "sm")}>⬇ Confirmed waitlist (CSV)</a>
-          <a href="/admin/export/players" download className={buttonClass("light", "sm")}>⬇ Players who want news (CSV)</a>
+          <a href="/admin/export/waitlist" download className={buttonClass("light", "sm")}>
+            ⬇ Confirmed waitlist (CSV)
+          </a>
+          <a href="/admin/export/players" download className={buttonClass("light", "sm")}>
+            ⬇ Players who want news (CSV)
+          </a>
         </div>
       </div>
       <p className="rounded-2xl bg-honey/20 px-4 py-3 text-sm">
-        Exports contain only people who asked to hear from Pawtopia and are recorded in the audit log. Import them into an email
-        tool that adds an unsubscribe link to every message.
+        Exports contain only people who asked to hear from Pawtopia and are recorded in the audit log. Import them into
+        an email tool that adds an unsubscribe link to every message.
       </p>
 
       <form className="flex gap-2" role="search">
-        <label htmlFor="q" className="sr-only">Search by email</label>
+        <label htmlFor="q" className="sr-only">
+          Search by email
+        </label>
         <input id="q" name="q" defaultValue={q} placeholder="Search by email" className={adminInput} />
-        <button className={buttonClass("primary", "sm", "h-auto")} type="submit">Search</button>
+        <button className={buttonClass("primary", "sm", "h-auto")} type="submit">
+          Search
+        </button>
       </form>
 
       <Card className="overflow-x-auto p-0" tabIndex={0} role="region" aria-label="Waitlist sign-ups">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="bg-sage text-xs uppercase tracking-wide text-forest-700">
-            <tr><th className="p-3">Email</th><th>Status</th><th>News opt-in</th><th>Joined</th><th className="sr-only">Actions</th></tr>
+            <tr>
+              <th className="p-3">Email</th>
+              <th>Status</th>
+              <th>News opt-in</th>
+              <th>Joined</th>
+              <th className="sr-only">Actions</th>
+            </tr>
           </thead>
           <tbody>
             {entries.map((e) => (
@@ -68,20 +89,41 @@ export default async function AdminWaitlist({ searchParams }: PageProps<"/admin/
                 <td>{e.promotional_opt_in ? "yes" : "no"}</td>
                 <td>{new Date(e.created_at).toLocaleDateString()}</td>
                 <td className="p-2 text-right">
-                  <ActionButton action={deleteWaitlistEntry.bind(null, e.id)} label="Delete" variant="danger" confirm={`Delete ${e.email} from the waitlist?`} />
+                  <ActionButton
+                    action={deleteWaitlistEntry.bind(null, e.id)}
+                    label="Delete"
+                    variant="danger"
+                    confirm={`Delete ${e.email} from the waitlist?`}
+                  />
                 </td>
               </tr>
             ))}
             {entries.length === 0 && (
-              <tr><td colSpan={5} className="p-6 text-center text-ink-soft">No sign-ups{q ? " match that search" : " yet"}.</td></tr>
+              <tr>
+                <td colSpan={5} className="p-6 text-center text-ink-soft">
+                  No sign-ups{q ? " match that search" : " yet"}.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
       </Card>
 
       <nav className="flex justify-between text-sm font-bold" aria-label="Pages">
-        {page > 1 ? <Link href={`?q=${encodeURIComponent(q)}&page=${page - 1}`} className="text-forest">← Newer</Link> : <span />}
-        {page * PAGE_SIZE < total ? <Link href={`?q=${encodeURIComponent(q)}&page=${page + 1}`} className="text-forest">Older →</Link> : <span />}
+        {page > 1 ? (
+          <Link href={`?q=${encodeURIComponent(q)}&page=${page - 1}`} className="text-forest">
+            ← Newer
+          </Link>
+        ) : (
+          <span />
+        )}
+        {page * PAGE_SIZE < total ? (
+          <Link href={`?q=${encodeURIComponent(q)}&page=${page + 1}`} className="text-forest">
+            Older →
+          </Link>
+        ) : (
+          <span />
+        )}
       </nav>
     </div>
   );

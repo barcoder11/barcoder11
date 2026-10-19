@@ -21,14 +21,18 @@ export default async function ConfirmPage({ searchParams }: PageProps<"/auth/con
 
   return (
     <Card className="w-full max-w-md p-7 text-center pop-in">
-      <div className="text-5xl" aria-hidden="true">🦝</div>
+      <div className="text-5xl" aria-hidden="true">
+        🦝
+      </div>
       {valid ? (
         <ConfirmSignIn tokenHash={tokenHash} type={type!} />
       ) : (
         <>
           <h1 className="mt-2 font-display text-3xl font-bold">This link doesn&apos;t look right</h1>
           <p className="mt-2 text-ink-soft">It may be incomplete. Request a new sign-in code to continue.</p>
-          <Link href="/auth" className={buttonClass("primary", "md", "mt-6")}>Get a new code</Link>
+          <Link href="/auth" className={buttonClass("primary", "md", "mt-6")}>
+            Get a new code
+          </Link>
         </>
       )}
     </Card>

@@ -24,7 +24,8 @@ test("player can export their data and permanently delete their account", async 
   const { rows } = await pool.query(`select count(*)::int n from auth.users where email = $1`, [email]);
   expect(rows[0].n).toBe(0);
   const { rows: left } = await pool.query(
-    `select count(*)::int n from public.user_animals ua left join auth.users u on u.id = ua.user_id where u.id is null`);
+    `select count(*)::int n from public.user_animals ua left join auth.users u on u.id = ua.user_id where u.id is null`,
+  );
   expect(left[0].n).toBe(0);
   // Signed out: the game redirects to sign-in.
   await page.goto("/app");

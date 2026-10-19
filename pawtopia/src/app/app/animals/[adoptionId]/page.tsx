@@ -36,25 +36,30 @@ export default async function AnimalRoomPage({ params, searchParams }: PageProps
     <>
       <SyncBalance value={balance} />
       <CareRoom
-      adoption={{
-        id: adoption.id,
-        nickname: adoption.nickname,
-        bond_xp: adoption.bond_xp,
-        level: adoption.level,
-        phase: adoption.phase,
-        care_count: adoption.care_count,
-      }}
-      animal={{ name: animal.name, species: animal.species, placeholder_style: animal.placeholder_style, colors: animal.colors }}
-      assets={assetMap(animal)}
-      economy={economy}
-      lastTimes={lastTimes}
-      serverNow={nowMs()}
-      scene={{ style: scene.style, slots: scene.slots, placements: scene.placements, decorBySlug: scene.decorBySlug }}
-      outline={outline}
-      welcome={sp.welcome === "1"}
-      shareUrl={shareUrl}
-      acornActivitiesToday={acornActivities}
-    />
+        adoption={{
+          id: adoption.id,
+          nickname: adoption.nickname,
+          bond_xp: adoption.bond_xp,
+          level: adoption.level,
+          phase: adoption.phase,
+          care_count: adoption.care_count,
+        }}
+        animal={{
+          name: animal.name,
+          species: animal.species,
+          placeholder_style: animal.placeholder_style,
+          colors: animal.colors,
+        }}
+        assets={assetMap(animal)}
+        economy={economy}
+        lastTimes={lastTimes}
+        serverNow={nowMs()}
+        scene={{ style: scene.style, slots: scene.slots, placements: scene.placements, decorBySlug: scene.decorBySlug }}
+        outline={outline}
+        welcome={sp.welcome === "1"}
+        shareUrl={shareUrl}
+        acornActivitiesToday={acornActivities}
+      />
     </>
   );
 }

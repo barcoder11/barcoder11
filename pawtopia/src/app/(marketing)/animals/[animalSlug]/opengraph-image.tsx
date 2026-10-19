@@ -17,7 +17,13 @@ export default async function Image({ params }: { params: Promise<{ animalSlug: 
     .maybeSingle();
   const animal = data as (Animal & { animal_assets: AnimalAsset[] }) | null;
   return animalCard({
-    animal: animal ?? { name: "Pawtopia", species: "", placeholder_style: "raccoon", colors: {}, tagline: "Every rescue deserves a new beginning." },
+    animal: animal ?? {
+      name: "Pawtopia",
+      species: "",
+      placeholder_style: "raccoon",
+      colors: {},
+      tagline: "Every rescue deserves a new beginning.",
+    },
     assets: animal?.animal_assets,
     eyebrow: animal ? `Meet the ${animal.species.toLowerCase()}` : "Virtual sanctuary",
   });

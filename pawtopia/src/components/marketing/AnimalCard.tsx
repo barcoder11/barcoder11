@@ -15,7 +15,9 @@ export function AnimalCard({ animal, href }: { animal: Animal; href?: string }) 
     >
       <div className="relative aspect-[4/3] overflow-hidden">
         <SceneBackdrop style={SCENE_FOR[animal.habitat_slug ?? ""] ?? "forest"} />
-        <div className={`absolute inset-x-0 bottom-1 mx-auto h-[82%] w-[70%] ${comingSoon ? "opacity-40 grayscale" : ""}`}>
+        <div
+          className={`absolute inset-x-0 bottom-1 mx-auto h-[82%] w-[70%] ${comingSoon ? "opacity-40 grayscale" : ""}`}
+        >
           <AnimalArt animal={animal} assets={assets} />
         </div>
         {comingSoon && (
@@ -24,7 +26,10 @@ export function AnimalCard({ animal, href }: { animal: Animal; href?: string }) 
           </span>
         )}
         {isNewArrival(animal) && (
-          <span className="absolute left-3 top-3 rounded-full bg-honey px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-ink" data-testid="new-badge">
+          <span
+            className="absolute left-3 top-3 rounded-full bg-honey px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-ink"
+            data-testid="new-badge"
+          >
             ✨ New rescue
           </span>
         )}

@@ -9,9 +9,18 @@ import { OFFLINE_MESSAGE, tryAction } from "@/lib/safe-action";
 import { Stage, slotStyle } from "./Stage";
 import type { Animal, AnimalAsset, AssetState, Decor, HabitatSlot, Placement } from "@/lib/types";
 
-type Resident = { id: string; name: string; animal: Pick<Animal, "name" | "species" | "placeholder_style" | "colors">; assets: Partial<Record<AssetState, AnimalAsset>> };
+type Resident = {
+  id: string;
+  name: string;
+  animal: Pick<Animal, "name" | "species" | "placeholder_style" | "colors">;
+  assets: Partial<Record<AssetState, AnimalAsset>>;
+};
 
-const CATEGORY_LABEL: Record<HabitatSlot["category"], string> = { small: "Small spot", large: "Big spot", hanging: "Hanging spot" };
+const CATEGORY_LABEL: Record<HabitatSlot["category"], string> = {
+  small: "Small spot",
+  large: "Big spot",
+  hanging: "Hanging spot",
+};
 const RESIDENT_POS = [
   { left: "50%", width: "34%" },
   { left: "30%", width: "26%" },
@@ -46,10 +55,17 @@ export function SanctuaryEditor(props: {
       setMessage({ tone: "error", text: OFFLINE_MESSAGE });
     } else if (res.placements) {
       setPlacements(res.placements);
-      setMessage({ tone: "success", text: slug ? `Placed ${props.decorBySlug[slug]?.name ?? "item"} — saved!` : "Removed — saved!" });
+      setMessage({
+        tone: "success",
+        text: slug ? `Placed ${props.decorBySlug[slug]?.name ?? "item"} — saved!` : "Removed — saved!",
+      });
       setActiveSlot(null);
     } else {
-      setMessage({ tone: "error", text: res.status === "wrong_slot" ? "That item doesn't fit in this spot." : "Couldn't save that change. Try again." });
+      setMessage({
+        tone: "error",
+        text:
+          res.status === "wrong_slot" ? "That item doesn't fit in this spot." : "Couldn't save that change. Try again.",
+      });
     }
   }
 
@@ -69,17 +85,43 @@ export function SanctuaryEditor(props: {
               else setMessage({ tone: "error", text: "Sanctuary names can be 1–40 characters." });
             }}
           >
-            <label htmlFor="sanctuary-name" className="sr-only">Sanctuary name</label>
-            <input id="sanctuary-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} className="rounded-xl border-2 border-sage-200 px-3 py-2 font-display text-xl" autoFocus />
-            <Button size="sm" type="submit">Save</Button>
+            <label htmlFor="sanctuary-name" className="sr-only">
+              Sanctuary name
+            </label>
+            <input
+              id="sanctuary-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={40}
+              className="rounded-xl border-2 border-sage-200 px-3 py-2 font-display text-xl"
+              autoFocus
+            />
+            <Button size="sm" type="submit">
+              Save
+            </Button>
           </form>
         ) : (
           <h1 className="flex items-center gap-2 font-display text-3xl font-bold">
             {name}
-            <button type="button" onClick={() => setRenaming(true)} className="text-base opacity-60 hover:opacity-100" aria-label="Rename sanctuary">✏️</button>
+            <button
+              type="button"
+              onClick={() => setRenaming(true)}
+              className="text-base opacity-60 hover:opacity-100"
+              aria-label="Rename sanctuary"
+            >
+              ✏️
+            </button>
           </h1>
         )}
-        <Button variant={editing ? "honey" : "primary"} size="sm" onClick={() => { setEditing(!editing); setActiveSlot(null); }} data-testid="toggle-decorate">
+        <Button
+          variant={editing ? "honey" : "primary"}
+          size="sm"
+          onClick={() => {
+            setEditing(!editing);
+            setActiveSlot(null);
+          }}
+          data-testid="toggle-decorate"
+        >
           {editing ? "✓ Done decorating" : "🎨 Decorate"}
         </Button>
       </div>
@@ -102,7 +144,11 @@ export function SanctuaryEditor(props: {
                 type="button"
                 onClick={() => setActiveSlot(slot)}
                 className={`absolute grid place-items-center rounded-2xl border-[3px] border-dashed text-xs font-extrabold transition ${
-                  activeSlot?.id === slot.id ? "border-honey bg-honey/40" : occupied ? "border-white/80 bg-white/10" : "border-white bg-white/40 hover:bg-white/60"
+                  activeSlot?.id === slot.id
+                    ? "border-honey bg-honey/40"
+                    : occupied
+                      ? "border-white/80 bg-white/10"
+                      : "border-white bg-white/40 hover:bg-white/60"
                 }`}
                 style={{ ...slotStyle(slot), zIndex: 60, aspectRatio: "1 / 1" }}
                 aria-label={`${slot.label} (${CATEGORY_LABEL[slot.category]})${occupied ? `, has ${props.decorBySlug[occupied]?.name}` : ", empty"}`}
@@ -128,24 +174,43 @@ export function SanctuaryEditor(props: {
       </Stage>
 
       {props.residents.length === 0 && (
-        <Notice>Your sanctuary is waiting for its first resident. <Link href="/app" className="underline">Adopt an animal</Link> to bring it to life.</Notice>
+        <Notice>
+          Your sanctuary is waiting for its first resident.{" "}
+          <Link href="/app" className="underline">
+            Adopt an animal
+          </Link>{" "}
+          to bring it to life.
+        </Notice>
       )}
 
       {/* Slot picker (bottom sheet) */}
       {editing && activeSlot && (
-        <div className="slide-up rounded-[1.75rem] bg-white p-4 shadow-soft ring-1 ring-ink/5" role="region" aria-label={`Choose an item for ${activeSlot.label}`}>
+        <div
+          className="slide-up rounded-[1.75rem] bg-white p-4 shadow-soft ring-1 ring-ink/5"
+          role="region"
+          aria-label={`Choose an item for ${activeSlot.label}`}
+        >
           <div className="mb-3 flex items-center justify-between">
             <div>
-              <p className="text-xs font-extrabold uppercase tracking-widest text-terracotta">{CATEGORY_LABEL[activeSlot.category]}</p>
+              <p className="text-xs font-extrabold uppercase tracking-widest text-terracotta">
+                {CATEGORY_LABEL[activeSlot.category]}
+              </p>
               <h2 className="font-display text-xl font-bold">{activeSlot.label}</h2>
             </div>
-            <button type="button" className="rounded-full px-3 py-1 font-bold text-ink-soft hover:bg-sage" onClick={() => setActiveSlot(null)}>
+            <button
+              type="button"
+              className="rounded-full px-3 py-1 font-bold text-ink-soft hover:bg-sage"
+              onClick={() => setActiveSlot(null)}
+            >
               Close
             </button>
           </div>
           {options.length === 0 ? (
             <p className="text-ink-soft">
-              You don&apos;t own anything for this spot yet. <Link href="/app/shop" className="font-bold text-forest underline">Visit the shop</Link>
+              You don&apos;t own anything for this spot yet.{" "}
+              <Link href="/app/shop" className="font-bold text-forest underline">
+                Visit the shop
+              </Link>
             </p>
           ) : (
             <ul className="grid grid-cols-3 gap-2 sm:grid-cols-5">
@@ -172,7 +237,13 @@ export function SanctuaryEditor(props: {
             </ul>
           )}
           {inSlot(activeSlot.id) && (
-            <Button variant="light" size="sm" className="mt-3" disabled={pending} onClick={() => choose(activeSlot, null)}>
+            <Button
+              variant="light"
+              size="sm"
+              className="mt-3"
+              disabled={pending}
+              onClick={() => choose(activeSlot, null)}
+            >
               Remove item from this spot
             </Button>
           )}
@@ -181,16 +252,29 @@ export function SanctuaryEditor(props: {
 
       {/* Accessible list alternative to tapping the scene */}
       <details className="rounded-[1.5rem] bg-white p-4 ring-1 ring-ink/5">
-        <summary className="cursor-pointer font-display text-lg font-semibold">All decoration spots ({placements.length}/{props.slots.length} filled)</summary>
+        <summary className="cursor-pointer font-display text-lg font-semibold">
+          All decoration spots ({placements.length}/{props.slots.length} filled)
+        </summary>
         <ul className="mt-3 grid gap-2 sm:grid-cols-2">
           {props.slots.map((slot) => {
             const occupied = inSlot(slot.id);
             return (
-              <li key={slot.id} className="flex items-center justify-between gap-2 rounded-xl bg-cream px-3 py-2 text-sm">
+              <li
+                key={slot.id}
+                className="flex items-center justify-between gap-2 rounded-xl bg-cream px-3 py-2 text-sm"
+              >
                 <span>
-                  <strong>{slot.label}</strong> · {occupied ? props.decorBySlug[occupied]?.name : <em className="text-ink-soft">empty</em>}
+                  <strong>{slot.label}</strong> ·{" "}
+                  {occupied ? props.decorBySlug[occupied]?.name : <em className="text-ink-soft">empty</em>}
                 </span>
-                <button type="button" className="font-bold text-forest hover:underline" onClick={() => { setEditing(true); setActiveSlot(slot); }}>
+                <button
+                  type="button"
+                  className="font-bold text-forest hover:underline"
+                  onClick={() => {
+                    setEditing(true);
+                    setActiveSlot(slot);
+                  }}
+                >
                   Change
                 </button>
               </li>
@@ -200,7 +284,9 @@ export function SanctuaryEditor(props: {
       </details>
 
       <div className="flex gap-2">
-        <Link href="/app/shop" className={buttonClass("honey", "md")}>🛍️ Get more decorations</Link>
+        <Link href="/app/shop" className={buttonClass("honey", "md")}>
+          🛍️ Get more decorations
+        </Link>
       </div>
     </div>
   );

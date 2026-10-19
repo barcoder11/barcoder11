@@ -20,18 +20,18 @@ server then registers the asset after confirming the object exists.
 
 ## Code layout
 
-| Path | Contents |
-|---|---|
-| `src/app/(marketing)` | `/`, `/r/[rescueSlug]`, `/animals/[slug]`, `/animals/[slug]/adopt`, waitlist, privacy, terms |
-| `src/app/(auth)` | `/auth`, `/auth/callback` (PKCE), `/auth/confirm` (token hash), `/onboarding` |
-| `src/app/app` | Player game: dashboard, animal room, sanctuary, shop, stories, profile (+ server actions) |
-| `src/app/admin` | Creator dashboard, animals, rescues + link generator, assets, analytics (+ server actions) |
-| `src/components/art` | Placeholder SVG characters/decor/backdrops + `AnimalArt` (uploaded asset → placeholder fallback) |
-| `src/components/game` | `CareRoom`, `SanctuaryEditor`, `ShopGrid`, `Stage`, HUD state |
-| `src/lib` | Supabase clients, auth guards, data access, attribution, safe redirects, link builder |
-| `supabase/migrations` | Schema, RLS, game functions, storage policies |
-| `supabase/seed.sql` | Maple (playable), Ripple/Pebble/Ember/Acorn (coming soon), habitats, decor, settings |
-| `tests/` | DB integration tests, Playwright E2E, Docker-free local stack |
+| Path                  | Contents                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------ |
+| `src/app/(marketing)` | `/`, `/r/[rescueSlug]`, `/animals/[slug]`, `/animals/[slug]/adopt`, waitlist, privacy, terms     |
+| `src/app/(auth)`      | `/auth`, `/auth/callback` (PKCE), `/auth/confirm` (token hash), `/onboarding`                    |
+| `src/app/app`         | Player game: dashboard, animal room, sanctuary, shop, stories, profile (+ server actions)        |
+| `src/app/admin`       | Creator dashboard, animals, rescues + link generator, assets, analytics (+ server actions)       |
+| `src/components/art`  | Placeholder SVG characters/decor/backdrops + `AnimalArt` (uploaded asset → placeholder fallback) |
+| `src/components/game` | `CareRoom`, `SanctuaryEditor`, `ShopGrid`, `Stage`, HUD state                                    |
+| `src/lib`             | Supabase clients, auth guards, data access, attribution, safe redirects, link builder            |
+| `supabase/migrations` | Schema, RLS, game functions, storage policies                                                    |
+| `supabase/seed.sql`   | Maple (playable), Ripple/Pebble/Ember/Acorn (coming soon), habitats, decor, settings             |
+| `tests/`              | DB integration tests, Playwright E2E, Docker-free local stack                                    |
 
 ## Data model
 
@@ -58,7 +58,7 @@ Deviations from the PRD's table list (with reasons):
 - **All player writes go through `SECURITY DEFINER` functions** (`adopt_animal`,
   `perform_care`, `purchase_decor`, `place_decor`, …). They take the user from
   `auth.uid()`, never from arguments, and read reward amounts from `app_settings.economy`.
-  The client only sends *which* action and an idempotency key.
+  The client only sends _which_ action and an idempotency key.
 - **Idempotency:** care actions are UNIQUE per (user, idempotency key); ledger rows have a
   globally UNIQUE key (`welcome:<user>`, `care:<id>`, `purchase:<user>:<key>`). Replays
   return `status: "replay"` with no new rewards. Adoption is UNIQUE per user+animal.

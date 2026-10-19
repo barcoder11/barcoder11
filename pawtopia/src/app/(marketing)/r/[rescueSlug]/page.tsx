@@ -31,7 +31,8 @@ export default async function RescuePage({ params }: PageProps<"/r/[rescueSlug]"
   const isEditor = await getIsEditor();
   const assets = assetMap(animal);
   const teaser = (animal.animal_assets ?? []).find((a) => a.id === rescue.teaser_asset_id) ?? assets.teaser;
-  const poster = (animal.animal_assets ?? []).find((a) => a.id === rescue.poster_asset_id) ?? assets.poster ?? assets.cover;
+  const poster =
+    (animal.animal_assets ?? []).find((a) => a.id === rescue.poster_asset_id) ?? assets.poster ?? assets.cover;
 
   if (rescue.status === "archived" && !isEditor) {
     return (
@@ -41,8 +42,12 @@ export default async function RescuePage({ params }: PageProps<"/r/[rescueSlug]"
           “{rescue.title}” is no longer featured, but you can still meet the other residents of Pawtopia.
         </p>
         <div className="mt-6 flex justify-center gap-3">
-          {animal.status === "published" && <ButtonLink href={`/animals/${animal.slug}`}>Meet {animal.name}</ButtonLink>}
-          <ButtonLink href="/" variant="light">Explore Pawtopia</ButtonLink>
+          {animal.status === "published" && (
+            <ButtonLink href={`/animals/${animal.slug}`}>Meet {animal.name}</ButtonLink>
+          )}
+          <ButtonLink href="/" variant="light">
+            Explore Pawtopia
+          </ButtonLink>
         </div>
       </div>
     );

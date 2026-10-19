@@ -9,16 +9,19 @@ import { personalize, PHASES } from "@/lib/game";
 
 export const metadata: Metadata = { title: "Stories" };
 
-
 export default async function StoriesPage() {
   const [adoptions, unlocked] = await Promise.all([listAdoptions(), getUnlockedChapters()]);
   if (adoptions.length === 0) {
     return (
       <Card className="p-6 text-center">
-        <div className="text-5xl" aria-hidden="true">📖</div>
+        <div className="text-5xl" aria-hidden="true">
+          📖
+        </div>
         <h1 className="mt-2 font-display text-2xl font-bold">Your story album is empty</h1>
         <p className="mt-1 text-ink-soft">Adopt an animal to start unlocking their recovery chapters.</p>
-        <ButtonLink href="/app" className="mt-4">Meet the animals</ButtonLink>
+        <ButtonLink href="/app" className="mt-4">
+          Meet the animals
+        </ButtonLink>
       </Card>
     );
   }
@@ -28,7 +31,9 @@ export default async function StoriesPage() {
     <div className="grid gap-8">
       <div>
         <h1 className="font-display text-3xl font-bold">Story album 📖</h1>
-        <p className="mt-1 text-ink-soft">Recovery chapters unlock as your bond grows. Every story here is fictional.</p>
+        <p className="mt-1 text-ink-soft">
+          Recovery chapters unlock as your bond grows. Every story here is fictional.
+        </p>
       </div>
       {adoptions.map((a, idx) => {
         const animal = a.animals!;
@@ -43,8 +48,12 @@ export default async function StoriesPage() {
                 <AnimalArt animal={animal} assets={assetMap(animal)} />
               </div>
               <div>
-                <h2 id={`story-${a.id}`} className="font-display text-2xl font-bold">{name}&apos;s journey</h2>
-                <p className="text-sm text-ink-soft">{mine.length} of {outline.length} chapters unlocked</p>
+                <h2 id={`story-${a.id}`} className="font-display text-2xl font-bold">
+                  {name}&apos;s journey
+                </h2>
+                <p className="text-sm text-ink-soft">
+                  {mine.length} of {outline.length} chapters unlocked
+                </p>
               </div>
             </div>
             {/* phase path */}
@@ -78,7 +87,11 @@ export default async function StoriesPage() {
                 const chapter = mine.find((c) => c.ordinal === o.ordinal);
                 const phase = PHASES.find((p) => p.id === o.phase);
                 return chapter ? (
-                  <article key={o.ordinal} id={`chapter-${a.id}-${o.ordinal}`} className="scroll-mt-24 rounded-[1.5rem] bg-white p-5 shadow-soft ring-1 ring-ink/5">
+                  <article
+                    key={o.ordinal}
+                    id={`chapter-${a.id}-${o.ordinal}`}
+                    className="scroll-mt-24 rounded-[1.5rem] bg-white p-5 shadow-soft ring-1 ring-ink/5"
+                  >
                     <p className="text-xs font-extrabold uppercase tracking-widest text-terracotta">
                       {phase?.emoji} Chapter {o.ordinal} · {phase?.label}
                     </p>
@@ -88,17 +101,28 @@ export default async function StoriesPage() {
                     </p>
                   </article>
                 ) : (
-                  <div key={o.ordinal} className="flex items-center gap-3 rounded-[1.5rem] border-2 border-dashed border-ink/10 px-5 py-4 text-ink-soft">
-                    <span className="text-xl" aria-hidden="true">🔒</span>
+                  <div
+                    key={o.ordinal}
+                    className="flex items-center gap-3 rounded-[1.5rem] border-2 border-dashed border-ink/10 px-5 py-4 text-ink-soft"
+                  >
+                    <span className="text-xl" aria-hidden="true">
+                      🔒
+                    </span>
                     <div>
-                      <p className="font-display font-semibold">Chapter {o.ordinal}: {o.title}</p>
-                      <p className="text-xs">Unlocks at {o.unlock_bond_xp} bond XP ({Math.max(0, o.unlock_bond_xp - a.bond_xp)} to go)</p>
+                      <p className="font-display font-semibold">
+                        Chapter {o.ordinal}: {o.title}
+                      </p>
+                      <p className="text-xs">
+                        Unlocks at {o.unlock_bond_xp} bond XP ({Math.max(0, o.unlock_bond_xp - a.bond_xp)} to go)
+                      </p>
                     </div>
                   </div>
                 );
               })}
             </div>
-            <Link href={`/app/animals/${a.id}`} className="font-bold text-forest hover:underline">Visit {name} →</Link>
+            <Link href={`/app/animals/${a.id}`} className="font-bold text-forest hover:underline">
+              Visit {name} →
+            </Link>
           </section>
         );
       })}

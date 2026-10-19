@@ -54,7 +54,9 @@ export default async function AnimalPage({ params }: PageProps<"/animals/[animal
         </div>
         <div>
           <p className="text-sm font-extrabold uppercase tracking-widest text-terracotta">{animal.species}</p>
-          <h1 className="font-display text-5xl font-bold" data-testid="animal-name">{animal.name}</h1>
+          <h1 className="font-display text-5xl font-bold" data-testid="animal-name">
+            {animal.name}
+          </h1>
           {animal.tagline && <p className="mt-3 text-lg">{animal.tagline}</p>}
           <div className="mt-3 flex flex-wrap gap-2">
             {animal.personality_tags.map((t) => (
@@ -69,9 +71,15 @@ export default async function AnimalPage({ params }: PageProps<"/animals/[animal
             ) : animal.status === "archived" && !adoptionId ? (
               <Notice>{animal.name} is no longer available for new adoptions.</Notice>
             ) : adoptionId ? (
-              <ButtonLink href={`/app/animals/${adoptionId}`} size="lg">🏡 Visit {animal.name}</ButtonLink>
+              <ButtonLink href={`/app/animals/${adoptionId}`} size="lg">
+                🏡 Visit {animal.name}
+              </ButtonLink>
             ) : launch.mode === "open" || isEditor ? (
-              <AdoptCta href={`/animals/${animal.slug}/adopt`} label={`Virtually adopt ${animal.name} — Free`} animalSlug={animal.slug} />
+              <AdoptCta
+                href={`/animals/${animal.slug}/adopt`}
+                label={`Virtually adopt ${animal.name} — Free`}
+                animalSlug={animal.slug}
+              />
             ) : (
               <WaitlistForm context="animal_page" />
             )}
@@ -89,7 +97,10 @@ export default async function AnimalPage({ params }: PageProps<"/animals/[animal
               <ul className="mt-2 grid gap-2">
                 {rescues.map((r) => (
                   <li key={r.id}>
-                    <Link href={`/r/${r.slug}`} className="block rounded-2xl bg-white px-4 py-3 font-semibold ring-1 ring-ink/5 hover:bg-sage">
+                    <Link
+                      href={`/r/${r.slug}`}
+                      className="block rounded-2xl bg-white px-4 py-3 font-semibold ring-1 ring-ink/5 hover:bg-sage"
+                    >
                       🎬 {r.title}
                     </Link>
                   </li>

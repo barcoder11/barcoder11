@@ -141,6 +141,8 @@ export const getSanctuary = cache(async () => {
       .filter((p) => p.habitat_slug === habitatSlug && p.decor_catalog)
       .map((p) => ({ slot_id: p.slot_id, decor_slug: p.decor_catalog!.slug })) as Placement[],
     // Items whose catalog entry was disabled are hidden by RLS; skip them.
-    inventory: inventory.filter((i) => i.decor_catalog).map((i) => ({ ...(i.decor_catalog as Decor), source: i.source })),
+    inventory: inventory
+      .filter((i) => i.decor_catalog)
+      .map((i) => ({ ...(i.decor_catalog as Decor), source: i.source })),
   };
 });

@@ -50,7 +50,10 @@ export function ActionButton({
   confirm?: string;
 }) {
   const [state, run, pending] = useActionState<{ error?: string }, FormData>(
-    guardAction(async () => (await action()) ?? {}, () => ({ error: OFFLINE_MESSAGE })),
+    guardAction(
+      async () => (await action()) ?? {},
+      () => ({ error: OFFLINE_MESSAGE }),
+    ),
     {},
   );
   return (

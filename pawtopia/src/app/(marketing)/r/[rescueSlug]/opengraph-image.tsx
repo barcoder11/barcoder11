@@ -18,7 +18,13 @@ export default async function Image({ params }: { params: Promise<{ rescueSlug: 
   const animal = (data?.animals ?? null) as (Animal & { animal_assets: AnimalAsset[] }) | null;
   if (!animal) {
     return animalCard({
-      animal: { name: "Pawtopia", species: "", placeholder_style: "raccoon", colors: {}, tagline: "Every rescue deserves a new beginning." },
+      animal: {
+        name: "Pawtopia",
+        species: "",
+        placeholder_style: "raccoon",
+        colors: {},
+        tagline: "Every rescue deserves a new beginning.",
+      },
       eyebrow: "Virtual sanctuary",
     });
   }

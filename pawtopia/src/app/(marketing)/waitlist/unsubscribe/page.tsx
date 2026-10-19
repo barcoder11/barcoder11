@@ -21,7 +21,9 @@ export default async function UnsubscribePage({ searchParams }: PageProps<"/wait
                 ? "We've deleted your waitlist entry. Thanks for stopping by."
                 : "You won't receive any more waitlist emails from us."}
             </p>
-            <ButtonLink href="/" className="mt-6">Back to Pawtopia</ButtonLink>
+            <ButtonLink href="/" className="mt-6">
+              Back to Pawtopia
+            </ButtonLink>
           </>
         ) : (
           <>
@@ -29,8 +31,12 @@ export default async function UnsubscribePage({ searchParams }: PageProps<"/wait
             <p className="mt-2 text-ink-soft">Choose what you&apos;d like us to do with your email address.</p>
             <form action={unsubscribeWaitlist} className="mt-6 grid gap-3">
               <input type="hidden" name="token" value={token} />
-              <Button type="submit" name="delete" value="0" variant="light">Unsubscribe from emails</Button>
-              <Button type="submit" name="delete" value="1" variant="danger">Delete my waitlist entry entirely</Button>
+              <Button type="submit" name="delete" value="0" variant="light">
+                Unsubscribe from emails
+              </Button>
+              <Button type="submit" name="delete" value="1" variant="danger">
+                Delete my waitlist entry entirely
+              </Button>
             </form>
           </>
         )}

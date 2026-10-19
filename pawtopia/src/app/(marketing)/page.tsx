@@ -5,7 +5,11 @@ import { ButtonLink, Card, SectionTitle } from "@/components/ui";
 import { getLaunchSettings, listCatalogAnimals, listPublishedRescues } from "@/lib/data/catalog";
 
 export default async function LandingPage() {
-  const [launch, animals, rescues] = await Promise.all([getLaunchSettings(), listCatalogAnimals(), listPublishedRescues()]);
+  const [launch, animals, rescues] = await Promise.all([
+    getLaunchSettings(),
+    listCatalogAnimals(),
+    listPublishedRescues(),
+  ]);
   const featured =
     animals.find((a) => a.slug === launch.featured_animal_slug && a.status === "published") ??
     animals.find((a) => a.status === "published") ??
@@ -26,8 +30,9 @@ export default async function LandingPage() {
             Every rescue deserves a <span className="text-forest">new beginning.</span>
           </h1>
           <p className="mt-5 max-w-xl text-lg text-ink-soft">
-            Met {featured?.name ?? "Maple"} in one of our rescue videos? Their story continues here. Virtually adopt them,
-            help them feel safe with comforting care, unlock their recovery chapters and build a sanctuary that&apos;s all yours.
+            Met {featured?.name ?? "Maple"} in one of our rescue videos? Their story continues here. Virtually adopt
+            them, help them feel safe with comforting care, unlock their recovery chapters and build a sanctuary
+            that&apos;s all yours.
           </p>
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
             {open && featured ? (
@@ -35,7 +40,9 @@ export default async function LandingPage() {
                 <ButtonLink href={featuredRescue ? `/r/${featuredRescue.slug}` : `/animals/${featured.slug}`} size="lg">
                   🐾 Meet {featured.name}
                 </ButtonLink>
-                <ButtonLink href="#how" size="lg" variant="light">How it works</ButtonLink>
+                <ButtonLink href="#how" size="lg" variant="light">
+                  How it works
+                </ButtonLink>
               </>
             ) : (
               <div className="w-full max-w-md">
@@ -44,7 +51,8 @@ export default async function LandingPage() {
             )}
           </div>
           <p className="mt-5 max-w-xl text-sm font-semibold text-ink-soft">
-            ✨ Our rescue stories are fictional and AI-generated. Adoptions are virtual only — no real animals, no donations.
+            ✨ Our rescue stories are fictional and AI-generated. Adoptions are virtual only — no real animals, no
+            donations.
           </p>
         </div>
         {featured && (
@@ -80,7 +88,9 @@ export default async function LandingPage() {
           ].map(([icon, title, text], i) => (
             <Card key={title} className="relative">
               <span className="absolute right-4 top-4 font-display text-4xl font-bold text-sage">{i + 1}</span>
-              <div className="text-4xl" aria-hidden="true">{icon}</div>
+              <div className="text-4xl" aria-hidden="true">
+                {icon}
+              </div>
               <h3 className="mt-3 font-display text-xl font-bold">{title}</h3>
               <p className="mt-1 text-sm text-ink-soft">{text}</p>
             </Card>

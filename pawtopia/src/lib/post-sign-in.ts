@@ -1,14 +1,24 @@
 import "server-only";
 import { cookies } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { ANON_COOKIE, decodeFirstTouch, FIRST_TOUCH_COOKIE, isUuid, NEXT_COOKIE, type FirstTouch } from "@/lib/attribution";
+import {
+  ANON_COOKIE,
+  decodeFirstTouch,
+  FIRST_TOUCH_COOKIE,
+  isUuid,
+  NEXT_COOKIE,
+  type FirstTouch,
+} from "@/lib/attribution";
 import { sanitizeNext } from "@/lib/safe-redirect";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /** Emails in ADMIN_EMAILS (comma separated) become admins on their first verified sign-in. */
 export function isBootstrapAdmin(email: string | null | undefined, list = process.env.ADMIN_EMAILS) {
   if (!email || !list) return false;
-  const wanted = list.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+  const wanted = list
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
   return wanted.includes(email.trim().toLowerCase());
 }
 
@@ -37,7 +47,10 @@ export async function finishSignIn(supabase: SupabaseClient, requestedNext?: str
   if (claims?.sub && isBootstrapAdmin(claims.email as string | undefined)) {
     await createAdminClient()
       ?.from("app_roles")
-      .upsert({ user_id: claims.sub, role: "admin", granted_by: "ADMIN_EMAILS" }, { onConflict: "user_id,role", ignoreDuplicates: true });
+      .upsert(
+        { user_id: claims.sub, role: "admin", granted_by: "ADMIN_EMAILS" },
+        { onConflict: "user_id,role", ignoreDuplicates: true },
+      );
   }
 
   const fallbackNext = typeof meta.pt_next === "string" ? meta.pt_next : null;

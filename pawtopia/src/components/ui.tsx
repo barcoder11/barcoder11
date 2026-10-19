@@ -50,13 +50,23 @@ export function Card({ className = "", children, ...props }: ComponentProps<"div
 
 export function Pill({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full bg-sage px-3 py-1 text-xs font-bold text-forest-700 ${className}`}>
+    <span
+      className={`inline-flex items-center gap-1 rounded-full bg-sage px-3 py-1 text-xs font-bold text-forest-700 ${className}`}
+    >
       {children}
     </span>
   );
 }
 
-export function Label({ children, htmlFor, className = "" }: { children: ReactNode; htmlFor?: string; className?: string }) {
+export function Label({
+  children,
+  htmlFor,
+  className = "",
+}: {
+  children: ReactNode;
+  htmlFor?: string;
+  className?: string;
+}) {
   return (
     <label htmlFor={htmlFor} className={`mb-1.5 block text-sm font-bold text-ink ${className}`}>
       {children}
@@ -70,8 +80,6 @@ export const inputClass =
 export function Input(props: ComponentProps<"input">) {
   return <input {...props} className={`${inputClass} ${props.className ?? ""}`} />;
 }
-
-
 
 export function Notice({
   tone = "info",
@@ -89,7 +97,10 @@ export function Notice({
     error: "bg-[#FBE3DC] text-[#8A2E17]",
   };
   return (
-    <div role={tone === "error" ? "alert" : "status"} className={`rounded-2xl px-4 py-3 text-sm font-semibold ${tones[tone]} ${className}`}>
+    <div
+      role={tone === "error" ? "alert" : "status"}
+      className={`rounded-2xl px-4 py-3 text-sm font-semibold ${tones[tone]} ${className}`}
+    >
       {children}
     </div>
   );
@@ -103,7 +114,10 @@ export function FictionDisclosure({ className = "", compact = false }: { classNa
       data-testid="fiction-disclosure"
     >
       <span aria-hidden="true">✨</span>
-      <span>Fictional AI-generated rescue story — Virtual adoption only. No real animals are adopted, and nothing here is a donation.</span>
+      <span>
+        Fictional AI-generated rescue story — Virtual adoption only. No real animals are adopted, and nothing here is a
+        donation.
+      </span>
     </p>
   );
 }
@@ -135,7 +149,14 @@ export function AcornIcon({ className = "h-5 w-5" }: { className?: string }) {
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
       <path d="M12 3c-1 0-1.5.6-1.6 1.6C6.8 5 4 7 4 10h16c0-3-2.8-5-6.4-5.4C13.5 3.6 13 3 12 3z" fill="#7E4A33" />
       <path d="M5 10h14c0 6-3.2 11-7 11S5 16 5 10z" fill="#D9A35B" />
-      <path d="M8 12c0 3 1.2 6 3 7" stroke="#FFF3D6" strokeWidth="1.4" fill="none" strokeLinecap="round" opacity="0.8" />
+      <path
+        d="M8 12c0 3 1.2 6 3 7"
+        stroke="#FFF3D6"
+        strokeWidth="1.4"
+        fill="none"
+        strokeLinecap="round"
+        opacity="0.8"
+      />
     </svg>
   );
 }

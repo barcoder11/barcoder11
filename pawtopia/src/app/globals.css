@@ -58,7 +58,10 @@ body {
 /* ------------------------------------------------------------------ buttons */
 .btn-3d {
   box-shadow: var(--shadow-pop);
-  transition: transform 120ms ease, box-shadow 120ms ease, background-color 150ms ease;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    background-color 150ms ease;
 }
 .btn-3d:active:not(:disabled) {
   transform: translateY(4px);
@@ -173,97 +176,233 @@ body {
 }
 
 @keyframes breathe {
-  0%, 100% { transform: scale(1, 1); }
-  50% { transform: scale(1.015, 1.03); }
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(1.015, 1.03);
+  }
 }
 @keyframes blink {
-  0%, 92%, 100% { transform: scaleY(0); }
-  95% { transform: scaleY(1); }
+  0%,
+  92%,
+  100% {
+    transform: scaleY(0);
+  }
+  95% {
+    transform: scaleY(1);
+  }
 }
 @keyframes tail-sway {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(-6deg); }
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-6deg);
+  }
 }
 @keyframes tail-wag {
-  0%, 100% { transform: rotate(-8deg); }
-  50% { transform: rotate(10deg); }
+  0%,
+  100% {
+    transform: rotate(-8deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
 }
 @keyframes hop {
-  0%, 100% { transform: translateY(0) scale(1, 1); }
-  20% { transform: translateY(0) scale(1.06, 0.92); }
-  50% { transform: translateY(-16px) scale(0.96, 1.05); }
-  80% { transform: translateY(0) scale(1.04, 0.95); }
+  0%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  20% {
+    transform: translateY(0) scale(1.06, 0.92);
+  }
+  50% {
+    transform: translateY(-16px) scale(0.96, 1.05);
+  }
+  80% {
+    transform: translateY(0) scale(1.04, 0.95);
+  }
 }
 @keyframes wiggle {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-5deg) translateY(-4px); }
-  75% { transform: rotate(5deg) translateY(-4px); }
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-5deg) translateY(-4px);
+  }
+  75% {
+    transform: rotate(5deg) translateY(-4px);
+  }
 }
 @keyframes chew {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(2px) scaleY(0.98); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(2px) scaleY(0.98);
+  }
 }
 @keyframes look {
-  0%, 40%, 100% { transform: rotate(0deg); }
-  50%, 60% { transform: rotate(-5deg); }
-  70%, 80% { transform: rotate(4deg); }
+  0%,
+  40%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50%,
+  60% {
+    transform: rotate(-5deg);
+  }
+  70%,
+  80% {
+    transform: rotate(4deg);
+  }
 }
 @keyframes float-up {
-  0% { opacity: 0; transform: translateY(10px) scale(0.6); }
-  20% { opacity: 1; transform: translateY(0) scale(1); }
-  100% { opacity: 0; transform: translateY(-70px) scale(1.1); }
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.6);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-70px) scale(1.1);
+  }
 }
 @keyframes zzz {
-  0% { opacity: 0; transform: translate(0, 0) scale(0.7); }
-  30% { opacity: 1; }
-  100% { opacity: 0; transform: translate(14px, -30px) scale(1.1); }
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.7);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(14px, -30px) scale(1.1);
+  }
 }
 @keyframes ball-bounce {
-  from { transform: translateY(0); }
-  to { transform: translateY(-26px); }
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-26px);
+  }
 }
 @keyframes sparkle {
-  0%, 100% { opacity: 0.2; transform: scale(0.7); }
-  50% { opacity: 1; transform: scale(1); }
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(0.7);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 @keyframes firefly {
-  0%, 100% { opacity: 0; transform: translate(0, 0); }
-  25% { opacity: 1; }
-  50% { opacity: 0.6; transform: translate(18px, -14px); }
-  75% { opacity: 1; transform: translate(-10px, -24px); }
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  25% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+    transform: translate(18px, -14px);
+  }
+  75% {
+    opacity: 1;
+    transform: translate(-10px, -24px);
+  }
 }
 @keyframes sway {
-  0%, 100% { transform: rotate(-1.2deg); }
-  50% { transform: rotate(1.2deg); }
+  0%,
+  100% {
+    transform: rotate(-1.2deg);
+  }
+  50% {
+    transform: rotate(1.2deg);
+  }
 }
 @keyframes glow {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 @keyframes pop-in {
-  from { opacity: 0; transform: scale(0.85); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @keyframes reward {
-  0% { opacity: 0; transform: translate(-50%, 8px) scale(0.8); }
-  15% { opacity: 1; transform: translate(-50%, 0) scale(1.05); }
-  25% { transform: translate(-50%, 0) scale(1); }
-  80% { opacity: 1; }
-  100% { opacity: 0; transform: translate(-50%, -40px); }
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 8px) scale(0.8);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1.05);
+  }
+  25% {
+    transform: translate(-50%, 0) scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -40px);
+  }
 }
 @keyframes wobble {
-  0%, 100% { transform: rotate(0); }
-  25% { transform: rotate(-4deg); }
-  75% { transform: rotate(4deg); }
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25% {
+    transform: rotate(-4deg);
+  }
+  75% {
+    transform: rotate(4deg);
+  }
 }
 
 /* Reduced motion: OS setting or the in-app preference (html.reduce-motion). */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
@@ -278,16 +417,32 @@ html.reduce-motion *::after {
 }
 
 /* Hide scrollbars on horizontal card rails while keeping them scrollable */
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
 
 /* In reduced motion, reward toasts stay visible (removed by a timer) instead of animating away,
    and purely decorative floating effects are hidden. */
 @media (prefers-reduced-motion: reduce) {
-  .reward-toast { animation: none !important; transform: translate(-50%, 0); }
-  .float-up, .zzz, .firefly { display: none; }
+  .reward-toast {
+    animation: none !important;
+    transform: translate(-50%, 0);
+  }
+  .float-up,
+  .zzz,
+  .firefly {
+    display: none;
+  }
 }
-html.reduce-motion .reward-toast { animation: none !important; transform: translate(-50%, 0); }
+html.reduce-motion .reward-toast {
+  animation: none !important;
+  transform: translate(-50%, 0);
+}
 html.reduce-motion .float-up,
 html.reduce-motion .zzz,
-html.reduce-motion .firefly { display: none; }
+html.reduce-motion .firefly {
+  display: none;
+}

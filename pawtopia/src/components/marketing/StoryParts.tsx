@@ -12,7 +12,10 @@ export function ChapterTeaser({ outline, name }: { outline: ChapterOutline[]; na
           const phase = PHASES.find((p) => p.id === c.phase);
           return (
             <li key={c.ordinal} className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-ink/5">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-sage text-lg" aria-hidden="true">
+              <span
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-sage text-lg"
+                aria-hidden="true"
+              >
                 {c.ordinal === 1 ? phase?.emoji : "🔒"}
               </span>
               <div className="min-w-0">

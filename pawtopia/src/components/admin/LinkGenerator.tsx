@@ -3,7 +3,15 @@ import { useState } from "react";
 import { buildRescueLink, PLATFORM_DEFAULTS, type Platform } from "@/lib/links";
 import { adminInput, Field } from "./fields";
 
-export function LinkGenerator({ siteUrl, rescueSlug, published }: { siteUrl: string; rescueSlug: string; published: boolean }) {
+export function LinkGenerator({
+  siteUrl,
+  rescueSlug,
+  published,
+}: {
+  siteUrl: string;
+  rescueSlug: string;
+  published: boolean;
+}) {
   const [campaign, setCampaign] = useState(`${rescueSlug.split("-")[0]}_launch`);
   const [content, setContent] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
@@ -41,18 +49,27 @@ export function LinkGenerator({ siteUrl, rescueSlug, published }: { siteUrl: str
       </div>
       <ul className="grid gap-2">
         {links.map((l) => (
-          <li key={l.platform} className="grid gap-2 rounded-2xl bg-cream p-3 sm:grid-cols-[110px_1fr_auto] sm:items-center">
+          <li
+            key={l.platform}
+            className="grid gap-2 rounded-2xl bg-cream p-3 sm:grid-cols-[110px_1fr_auto] sm:items-center"
+          >
             <span className="font-bold">{l.label}</span>
-            <code className="break-all text-xs" data-testid={`link-${l.platform}`}>{l.url}</code>
-            <button type="button" onClick={() => copy(l.url)} className="rounded-full bg-forest px-4 py-2 text-sm font-bold text-cream">
+            <code className="break-all text-xs" data-testid={`link-${l.platform}`}>
+              {l.url}
+            </code>
+            <button
+              type="button"
+              onClick={() => copy(l.url)}
+              className="rounded-full bg-forest px-4 py-2 text-sm font-bold text-cream"
+            >
               {copied === l.url ? "Copied!" : "Copy"}
             </button>
           </li>
         ))}
       </ul>
       <p className="text-xs text-ink-soft">
-        Tip: TikTok only allows clickable profile links on eligible accounts — put the link in your bio and say “link in bio”.
-        Instagram and Facebook can use link stickers / descriptions.
+        Tip: TikTok only allows clickable profile links on eligible accounts — put the link in your bio and say “link in
+        bio”. Instagram and Facebook can use link stickers / descriptions.
       </p>
     </div>
   );

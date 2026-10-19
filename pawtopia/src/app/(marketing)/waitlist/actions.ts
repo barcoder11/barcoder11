@@ -14,7 +14,10 @@ export type WaitlistState = { status: "idle" | "ok" | "error"; message?: string 
 const schema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
   promo: z.literal("on").optional(),
-  form: z.string().regex(/^[a-z_]{1,30}$/).optional(),
+  form: z
+    .string()
+    .regex(/^[a-z_]{1,30}$/)
+    .optional(),
 });
 
 export async function joinWaitlist(_prev: WaitlistState, form: FormData): Promise<WaitlistState> {

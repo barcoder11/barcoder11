@@ -2,7 +2,7 @@
 
 type ContentStatus = "draft" | "coming_soon" | "published" | "archived";
 export type AssetState =
-  | "cover" | "avatar" | "idle" | "happy" | "comforted" | "snacking" | "playing" | "resting" | "poster" | "teaser";
+  "cover" | "avatar" | "idle" | "happy" | "comforted" | "snacking" | "playing" | "resting" | "poster" | "teaser";
 export type CareAction = "comfort" | "snack" | "play" | "rest";
 export type RecoveryPhase = "arrival" | "feeling_safe" | "learning_to_trust" | "thriving" | "new_beginning";
 export type PlaceholderStyle = "raccoon" | "otter" | "penguin" | "fox" | "squirrel" | "generic";
@@ -79,7 +79,13 @@ export type HabitatSlot = {
   y: number;
   z: number;
 };
-export type Habitat = { slug: string; name: string; description: string | null; scene_style: string; slots: HabitatSlot[] };
+export type Habitat = {
+  slug: string;
+  name: string;
+  description: string | null;
+  scene_style: string;
+  slots: HabitatSlot[];
+};
 
 export type Decor = {
   id: string;

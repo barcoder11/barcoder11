@@ -122,7 +122,12 @@ export function AuthForm({
           </Button>
         </form>
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-          <button type="button" className="font-bold text-forest hover:underline disabled:opacity-50" disabled={pending} onClick={() => sendCode(email)}>
+          <button
+            type="button"
+            className="font-bold text-forest hover:underline disabled:opacity-50"
+            disabled={pending}
+            onClick={() => sendCode(email)}
+          >
             Send a new code
           </button>
           <button

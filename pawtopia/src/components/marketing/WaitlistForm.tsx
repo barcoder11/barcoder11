@@ -24,7 +24,14 @@ export function WaitlistForm({ context }: { context: string }) {
         Get an invite when the sanctuary opens
       </label>
       <div className="flex flex-col gap-2 sm:flex-row">
-        <Input id="waitlist-email" name="email" type="email" required autoComplete="email" placeholder="you@example.com" />
+        <Input
+          id="waitlist-email"
+          name="email"
+          type="email"
+          required
+          autoComplete="email"
+          placeholder="you@example.com"
+        />
         <Button type="submit" disabled={pending} className="shrink-0">
           {pending ? "Saving…" : "Join waitlist"}
         </Button>

@@ -6,18 +6,18 @@ videos' look. Uploading official assets replaces it per state, with no code chan
 
 ## Slots per animal (upload at `/admin/animals/<id>`)
 
-| State | Used for | Recommended |
-|---|---|---|
-| `idle` | Default pose everywhere (room, cards, sanctuary) | Transparent PNG/WebP, ~1024×1024, character centred, feet near bottom |
-| `happy` | Rescue page hero, adoption screen | Same framing as idle |
-| `comforted` | After **Comfort** | Same framing |
-| `snacking` | After **Snack** | Same framing |
-| `playing` | After **Play** | Same framing |
-| `resting` | After **Rest** | Same framing |
-| `avatar` | Fallback portrait | Transparent square |
-| `cover` | Social/landing imagery | 4:5 or 1:1 JPEG/WebP |
-| `poster` | Rescue page poster (when no teaser) | 4:5 JPEG/WebP |
-| `teaser` | Rescue page autoplay loop (muted) | 6–12 s MP4/WebM, 4:5 or 9:16, ≤50 MB |
+| State       | Used for                                         | Recommended                                                           |
+| ----------- | ------------------------------------------------ | --------------------------------------------------------------------- |
+| `idle`      | Default pose everywhere (room, cards, sanctuary) | Transparent PNG/WebP, ~1024×1024, character centred, feet near bottom |
+| `happy`     | Rescue page hero, adoption screen                | Same framing as idle                                                  |
+| `comforted` | After **Comfort**                                | Same framing                                                          |
+| `snacking`  | After **Snack**                                  | Same framing                                                          |
+| `playing`   | After **Play**                                   | Same framing                                                          |
+| `resting`   | After **Rest**                                   | Same framing                                                          |
+| `avatar`    | Fallback portrait                                | Transparent square                                                    |
+| `cover`     | Social/landing imagery                           | 4:5 or 1:1 JPEG/WebP                                                  |
+| `poster`    | Rescue page poster (when no teaser)              | 4:5 JPEG/WebP                                                         |
+| `teaser`    | Rescue page autoplay loop (muted)                | 6–12 s MP4/WebM, 4:5 or 9:16, ≤50 MB                                  |
 
 Short looping MP4/WebM clips also work for any animation state. Missing states fall back
 to `idle`, then `avatar`, then placeholder art.
@@ -28,7 +28,7 @@ notes (private) for every upload.
 
 ## Consistency
 
-Record each character's distinctive markings in the animal's *Appearance* field (e.g.
+Record each character's distinctive markings in the animal's _Appearance_ field (e.g.
 Maple: chestnut fur, dark mask, ringed tail, tiny cream forehead spot) and use it as the
 reference for both video generation and game sprites.
 

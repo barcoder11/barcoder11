@@ -8,10 +8,37 @@ export function SceneBackdrop({ style = "forest", className = "" }: { style?: st
   const id = useId().replace(/[^a-zA-Z0-9]/g, "");
   const palette =
     style === "snow"
-      ? { sky1: "#EAF5FA", sky2: "#CFE6F0", far: "#BFD9E6", mid: "#A7C9DA", near: "#F4FAFC", ground: "#E8F2F7", water: "#9FD0E3", tree: "#6C9AAF" }
+      ? {
+          sky1: "#EAF5FA",
+          sky2: "#CFE6F0",
+          far: "#BFD9E6",
+          mid: "#A7C9DA",
+          near: "#F4FAFC",
+          ground: "#E8F2F7",
+          water: "#9FD0E3",
+          tree: "#6C9AAF",
+        }
       : style === "river"
-        ? { sky1: "#FFF4DE", sky2: "#D7EEE6", far: "#B9DCC9", mid: "#7FB59A", near: "#5F9E7D", ground: "#9CCB8F", water: "#8FC9DA", tree: "#2F6B58" }
-        : { sky1: "#FFF1D6", sky2: "#DDEDE2", far: "#BFDCC6", mid: "#86B897", near: "#5E9B75", ground: "#A3CF86", water: "#9AD0DD", tree: "#2F6B58" };
+        ? {
+            sky1: "#FFF4DE",
+            sky2: "#D7EEE6",
+            far: "#B9DCC9",
+            mid: "#7FB59A",
+            near: "#5F9E7D",
+            ground: "#9CCB8F",
+            water: "#8FC9DA",
+            tree: "#2F6B58",
+          }
+        : {
+            sky1: "#FFF1D6",
+            sky2: "#DDEDE2",
+            far: "#BFDCC6",
+            mid: "#86B897",
+            near: "#5E9B75",
+            ground: "#A3CF86",
+            water: "#9AD0DD",
+            tree: "#2F6B58",
+          };
 
   return (
     <svg
@@ -45,7 +72,10 @@ export function SceneBackdrop({ style = "forest", className = "" }: { style?: st
       </g>
 
       {/* distant hills */}
-      <path d="M0 210 C60 170 110 190 160 175 C220 155 270 185 320 165 C360 150 385 160 400 165 L400 400 L0 400 Z" fill={palette.far} />
+      <path
+        d="M0 210 C60 170 110 190 160 175 C220 155 270 185 320 165 C360 150 385 160 400 165 L400 400 L0 400 Z"
+        fill={palette.far}
+      />
       {/* mid trees */}
       <g fill={palette.mid}>
         {[20, 70, 120, 290, 340, 385].map((x, i) => (
@@ -70,7 +100,13 @@ export function SceneBackdrop({ style = "forest", className = "" }: { style?: st
         fill={palette.water}
         opacity="0.9"
       />
-      <path d="M40 300 h24 M150 298 h18 M280 296 h26" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
+      <path
+        d="M40 300 h24 M150 298 h18 M280 296 h26"
+        stroke="#ffffff"
+        strokeWidth="2"
+        strokeLinecap="round"
+        opacity="0.7"
+      />
 
       {/* foreground ground */}
       <path d="M0 318 C80 308 160 322 240 314 C310 308 360 316 400 312 L400 400 L0 400 Z" fill={`url(#ground-${id})`} />
@@ -85,12 +121,20 @@ export function SceneBackdrop({ style = "forest", className = "" }: { style?: st
         <g fill={palette.tree} opacity="0.85">
           {[12, 388].map((x, i) => (
             <g key={x} className="sway" style={{ animationDelay: `${i}s` }}>
-              <path d={`M${x} 400 C${x + (i ? -30 : 30)} 360 ${x + (i ? -40 : 40)} 340 ${x + (i ? -54 : 54)} 330 C${x + (i ? -30 : 30)} 350 ${x + (i ? -16 : 16)} 370 ${x} 400 Z`} />
-              <path d={`M${x} 400 C${x + (i ? -10 : 10)} 360 ${x + (i ? -6 : 6)} 330 ${x + (i ? -14 : 14)} 310 C${x + (i ? -22 : 22)} 340 ${x + (i ? -16 : 16)} 370 ${x} 400 Z`} />
+              <path
+                d={`M${x} 400 C${x + (i ? -30 : 30)} 360 ${x + (i ? -40 : 40)} 340 ${x + (i ? -54 : 54)} 330 C${x + (i ? -30 : 30)} 350 ${x + (i ? -16 : 16)} 370 ${x} 400 Z`}
+              />
+              <path
+                d={`M${x} 400 C${x + (i ? -10 : 10)} 360 ${x + (i ? -6 : 6)} 330 ${x + (i ? -14 : 14)} 310 C${x + (i ? -22 : 22)} 340 ${x + (i ? -16 : 16)} 370 ${x} 400 Z`}
+              />
             </g>
           ))}
           {/* little flowers */}
-          {[[90, 360], [300, 372], [210, 382]].map(([x, y]) => (
+          {[
+            [90, 360],
+            [300, 372],
+            [210, 382],
+          ].map(([x, y]) => (
             <g key={x}>
               <circle cx={x} cy={y} r="3.2" fill="#FFF8EC" />
               <circle cx={x} cy={y} r="1.4" fill="#EDBC78" />
@@ -101,8 +145,22 @@ export function SceneBackdrop({ style = "forest", className = "" }: { style?: st
 
       {/* fireflies / snowflakes */}
       <g fill={style === "snow" ? "#ffffff" : "#FFE08A"}>
-        {[[60, 140], [130, 90], [250, 120], [330, 80], [370, 200], [180, 210]].map(([x, y], i) => (
-          <circle key={i} cx={x} cy={y} r={style === "snow" ? 2.5 : 2} className="firefly" style={{ animationDelay: `${i * 0.9}s` }} />
+        {[
+          [60, 140],
+          [130, 90],
+          [250, 120],
+          [330, 80],
+          [370, 200],
+          [180, 210],
+        ].map(([x, y], i) => (
+          <circle
+            key={i}
+            cx={x}
+            cy={y}
+            r={style === "snow" ? 2.5 : 2}
+            className="firefly"
+            style={{ animationDelay: `${i * 0.9}s` }}
+          />
         ))}
       </g>
     </svg>
@@ -111,6 +169,8 @@ export function SceneBackdrop({ style = "forest", className = "" }: { style?: st
 
 function shadeHex(hex: string, amt: number) {
   const n = parseInt(hex.slice(1), 16);
-  const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => Math.round(amt >= 0 ? v + (255 - v) * amt : v * (1 + amt)));
+  const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) =>
+    Math.round(amt >= 0 ? v + (255 - v) * amt : v * (1 + amt)),
+  );
   return `#${ch.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
 }

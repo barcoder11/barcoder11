@@ -16,13 +16,13 @@
    - Site URL: `https://your-domain.com`
    - Redirect URLs: `https://your-domain.com/**` (plus your `*.vercel.app` preview URL if wanted)
 4. **Auth → Email templates** — paste `supabase/templates/magic_link.html` into both
-   *Magic Link* and *Confirm signup*. They include the token-hash link
+   _Magic Link_ and _Confirm signup_. They include the token-hash link
    (`/auth/confirm?...`) **and** the 6-digit code, which both work across browsers.
    The default templates also work (PKCE link via `/auth/callback`) but fail when the
    link opens in a different browser than the one that requested it.
 5. **Auth → SMTP** — Supabase's built-in email is heavily rate-limited (a few per hour)
    and meant for testing. Before launch, configure custom SMTP (Resend, Postmark, SES…)
-   and set *Auth → Rate limits* appropriately.
+   and set _Auth → Rate limits_ appropriately.
 6. Turn on MFA for your own Supabase dashboard account (admin protection).
 
 ## 2. Vercel

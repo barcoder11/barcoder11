@@ -7,9 +7,13 @@ test("video link → Maple → sign up → adopt → care → gift → decorate 
   const email = newEmail("player");
 
   // 1. Campaign link shows Maple specifically, with disclosure and CTA.
-  await page.goto("/r/maple-flood-rescue?utm_source=tiktok&utm_medium=video&utm_campaign=maple_launch&utm_content=vid_001");
+  await page.goto(
+    "/r/maple-flood-rescue?utm_source=tiktok&utm_medium=video&utm_campaign=maple_launch&utm_content=vid_001",
+  );
   await expect(page.getByTestId("animal-name")).toHaveText("Maple");
-  await expect(page.getByTestId("fiction-disclosure")).toContainText("Fictional AI-generated rescue story — Virtual adoption only");
+  await expect(page.getByTestId("fiction-disclosure")).toContainText(
+    "Fictional AI-generated rescue story — Virtual adoption only",
+  );
   await page.getByTestId("adopt-cta").click();
 
   // 2. Passwordless sign-up returns to Maple's adoption screen via onboarding.
@@ -65,8 +69,14 @@ test("video link → Maple → sign up → adopt → care → gift → decorate 
 
   // 8. Attribution survived email verification.
   const { rows } = await pool.query(
-    `select p.first_touch from public.profiles p join auth.users u on u.id = p.user_id where u.email = $1`, [email]);
-  expect(rows[0].first_touch).toMatchObject({ source: "tiktok", campaign: "maple_launch", rescue_slug: "maple-flood-rescue" });
+    `select p.first_touch from public.profiles p join auth.users u on u.id = p.user_id where u.email = $1`,
+    [email],
+  );
+  expect(rows[0].first_touch).toMatchObject({
+    source: "tiktok",
+    campaign: "maple_launch",
+    rescue_slug: "maple-flood-rescue",
+  });
 
   // 9. Another player can't open this player's room or the admin.
   const other = await browser.newContext();
@@ -106,8 +116,14 @@ test("magic link opened on another device returns the new player to Maple with a
   await completeOnboarding(pb);
   await expect(pb).toHaveURL(/\/animals\/maple\/adopt/);
   const { rows } = await pool.query(
-    `select p.first_touch from public.profiles p join auth.users u on u.id = p.user_id where u.email = $1`, [email]);
-  expect(rows[0].first_touch).toMatchObject({ source: "instagram", campaign: "cross_device", rescue_slug: "maple-flood-rescue" });
+    `select p.first_touch from public.profiles p join auth.users u on u.id = p.user_id where u.email = $1`,
+    [email],
+  );
+  expect(rows[0].first_touch).toMatchObject({
+    source: "instagram",
+    campaign: "cross_device",
+    rescue_slug: "maple-flood-rescue",
+  });
   await a.close();
   await b.close();
 });

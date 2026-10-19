@@ -19,7 +19,10 @@ export async function GET(_request: Request, ctx: { params: Promise<{ kind: stri
     return new NextResponse("Export failed", { status: 500 });
   }
   const rows = (data ?? []) as { email: string; opted_in_to_news: boolean; since: string }[];
-  const csv = toCsv(["email", "opted_in_to_news", "since"], rows.map((r) => [r.email, r.opted_in_to_news, r.since]));
+  const csv = toCsv(
+    ["email", "opted_in_to_news", "since"],
+    rows.map((r) => [r.email, r.opted_in_to_news, r.since]),
+  );
   const date = new Date().toISOString().slice(0, 10);
   return new NextResponse(csv, {
     headers: {

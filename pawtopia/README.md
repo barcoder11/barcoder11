@@ -14,13 +14,13 @@ decorates their sanctuary → comes back for each new rescue.
 Stack: Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · Supabase (Auth, Postgres,
 Storage, RLS) · Vercel.
 
-| Doc | What's in it |
-|---|---|
-| [docs/architecture.md](docs/architecture.md) | How it fits together, schema, security model, decisions |
-| [docs/deployment.md](docs/deployment.md) | Supabase + Vercel setup, email, launch runbook |
-| [docs/assets.md](docs/assets.md) | Replacing placeholder art with official character assets |
-| [docs/acceptance.md](docs/acceptance.md) | Acceptance checklist with actual test results |
-| [tests/README.md](tests/README.md) | How the test suites run |
+| Doc                                          | What's in it                                             |
+| -------------------------------------------- | -------------------------------------------------------- |
+| [docs/architecture.md](docs/architecture.md) | How it fits together, schema, security model, decisions  |
+| [docs/deployment.md](docs/deployment.md)     | Supabase + Vercel setup, email, launch runbook           |
+| [docs/assets.md](docs/assets.md)             | Replacing placeholder art with official character assets |
+| [docs/acceptance.md](docs/acceptance.md)     | Acceptance checklist with actual test results            |
+| [tests/README.md](tests/README.md)           | How the test suites run                                  |
 
 ## Quick start (local)
 
@@ -54,27 +54,27 @@ Roles can't be granted from inside the app — by design.
 
 ## Environment variables
 
-| Variable | Where | Purpose |
-|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | browser + server | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | browser + server | Anon / publishable key (RLS-protected) |
-| `SUPABASE_SERVICE_ROLE_KEY` | **server only** | Waitlist tokens, account deletion, admin script |
-| `NEXT_PUBLIC_SITE_URL` | both | Canonical URL for emails and share links |
-| `ADMIN_EMAILS` | server | Comma-separated emails auto-promoted to admin on sign-in |
-| `SMTP_HOST` `SMTP_PORT` `SMTP_USER` `SMTP_PASS` `EMAIL_FROM` | server | Waitlist confirmation emails (optional) |
+| Variable                                                     | Where            | Purpose                                                  |
+| ------------------------------------------------------------ | ---------------- | -------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`                                   | browser + server | Supabase project URL                                     |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`                              | browser + server | Anon / publishable key (RLS-protected)                   |
+| `SUPABASE_SERVICE_ROLE_KEY`                                  | **server only**  | Waitlist tokens, account deletion, admin script          |
+| `NEXT_PUBLIC_SITE_URL`                                       | both             | Canonical URL for emails and share links                 |
+| `ADMIN_EMAILS`                                               | server           | Comma-separated emails auto-promoted to admin on sign-in |
+| `SMTP_HOST` `SMTP_PORT` `SMTP_USER` `SMTP_PASS` `EMAIL_FROM` | server           | Waitlist confirmation emails (optional)                  |
 
 Without Supabase variables the app shows a setup screen instead of crashing.
 
 ## Scripts
 
-| | |
-|---|---|
-| `npm run dev` / `build` / `start` | Next.js |
-| `npm run lint` · `npm run typecheck` | ESLint · TypeScript |
-| `npm test` | Unit tests |
-| `npm run test:db` | Database/RLS/economy integration tests (needs a running stack) |
-| `npm run test:e2e` | Playwright end-to-end tests (needs app + stack + mailbox) |
-| `npm run admin:grant -- <email>` | Grant admin/editor role |
+|                                      |                                                                |
+| ------------------------------------ | -------------------------------------------------------------- |
+| `npm run dev` / `build` / `start`    | Next.js                                                        |
+| `npm run lint` · `npm run typecheck` | ESLint · TypeScript                                            |
+| `npm test`                           | Unit tests                                                     |
+| `npm run test:db`                    | Database/RLS/economy integration tests (needs a running stack) |
+| `npm run test:e2e`                   | Playwright end-to-end tests (needs app + stack + mailbox)      |
+| `npm run admin:grant -- <email>`     | Grant admin/editor role                                        |
 
 ## Adding a new animal (no code changes)
 

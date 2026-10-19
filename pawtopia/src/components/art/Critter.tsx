@@ -30,7 +30,14 @@ export function Critter(props: CritterProps) {
 }
 
 /** Hook-free version (used for server-side image generation). */
-export function CritterSvg({ variant, colors, state = "idle", title, className = "", uid }: CritterProps & { uid: string }) {
+export function CritterSvg({
+  variant,
+  colors,
+  state = "idle",
+  title,
+  className = "",
+  uid,
+}: CritterProps & { uid: string }) {
   const c = { ...DEFAULTS[variant], ...(colors ?? {}) };
   const isPenguin = variant === "penguin";
   const eyesClosed = state === "resting";
@@ -78,8 +85,17 @@ export function CritterSvg({ variant, colors, state = "idle", title, className =
         )}
         {variant === "squirrel" && (
           <g className="pet-tail">
-            <path d="M126 168 C168 170 190 120 168 76 C156 52 124 56 128 82 C132 100 160 100 150 128 C146 140 136 146 122 150 Z" fill={c.fur} />
-            <path d="M150 70 C162 76 168 92 162 104" stroke={lighten(c.fur, 0.25)} strokeWidth="5" fill="none" strokeLinecap="round" />
+            <path
+              d="M126 168 C168 170 190 120 168 76 C156 52 124 56 128 82 C132 100 160 100 150 128 C146 140 136 146 122 150 Z"
+              fill={c.fur}
+            />
+            <path
+              d="M150 70 C162 76 168 92 162 104"
+              stroke={lighten(c.fur, 0.25)}
+              strokeWidth="5"
+              fill="none"
+              strokeLinecap="round"
+            />
           </g>
         )}
         {variant === "otter" && (
@@ -100,8 +116,22 @@ export function CritterSvg({ variant, colors, state = "idle", title, className =
         {/* arms / flippers */}
         {state === "snacking" ? (
           <>
-            <ellipse cx="88" cy="122" rx="9" ry="12" fill={isPenguin ? c.fur : darken(c.fur, 0.12)} transform="rotate(25 88 122)" />
-            <ellipse cx="112" cy="122" rx="9" ry="12" fill={isPenguin ? c.fur : darken(c.fur, 0.12)} transform="rotate(-25 112 122)" />
+            <ellipse
+              cx="88"
+              cy="122"
+              rx="9"
+              ry="12"
+              fill={isPenguin ? c.fur : darken(c.fur, 0.12)}
+              transform="rotate(25 88 122)"
+            />
+            <ellipse
+              cx="112"
+              cy="122"
+              rx="9"
+              ry="12"
+              fill={isPenguin ? c.fur : darken(c.fur, 0.12)}
+              transform="rotate(-25 112 122)"
+            />
             <circle cx="100" cy="116" r="8" fill="#5B3A8C" />
             <circle cx="97" cy="113" r="2" fill="#ffffff" opacity="0.7" />
             <path d="M100 108 l2 -5" stroke="#3E7C4F" strokeWidth="2" strokeLinecap="round" />
@@ -125,15 +155,31 @@ export function CritterSvg({ variant, colors, state = "idle", title, className =
 
           {variant === "raccoon" && (
             <>
-              <path d="M62 96 C66 112 84 120 100 120 C116 120 134 112 138 96 C130 104 116 108 100 108 C84 108 70 104 62 96 Z" fill={c.accent} />
-              <path d="M58 84 C66 70 86 76 100 82 C114 76 134 70 142 84 C138 98 122 100 112 94 C106 92 94 92 88 94 C78 100 62 98 58 84 Z" fill={c.mask} />
-              <path d="M70 66 C80 62 92 64 100 70 C108 64 120 62 130 66" stroke={c.accent} strokeWidth="5" fill="none" strokeLinecap="round" opacity="0.9" />
+              <path
+                d="M62 96 C66 112 84 120 100 120 C116 120 134 112 138 96 C130 104 116 108 100 108 C84 108 70 104 62 96 Z"
+                fill={c.accent}
+              />
+              <path
+                d="M58 84 C66 70 86 76 100 82 C114 76 134 70 142 84 C138 98 122 100 112 94 C106 92 94 92 88 94 C78 100 62 98 58 84 Z"
+                fill={c.mask}
+              />
+              <path
+                d="M70 66 C80 62 92 64 100 70 C108 64 120 62 130 66"
+                stroke={c.accent}
+                strokeWidth="5"
+                fill="none"
+                strokeLinecap="round"
+                opacity="0.9"
+              />
               {/* Maple's tiny cream forehead spot */}
               <ellipse cx="100" cy="60" rx="5" ry="4" fill={c.accent} />
             </>
           )}
           {(variant === "fox" || variant === "otter" || variant === "squirrel" || variant === "generic") && (
-            <path d="M68 98 C72 114 86 122 100 122 C114 122 128 114 132 98 C122 106 112 108 100 108 C88 108 78 106 68 98 Z" fill={c.accent} />
+            <path
+              d="M68 98 C72 114 86 122 100 122 C114 122 128 114 132 98 C122 106 112 108 100 108 C88 108 78 106 68 98 Z"
+              fill={c.accent}
+            />
           )}
           {isPenguin && <ellipse cx="100" cy="96" rx="30" ry="26" fill={c.belly} />}
 
@@ -151,8 +197,22 @@ export function CritterSvg({ variant, colors, state = "idle", title, className =
               <circle cx="120.5" cy="84" r="2.6" fill="#ffffff" />
               <circle cx="80" cy="90" r="1.2" fill="#ffffff" opacity="0.8" />
               <circle cx="116" cy="90" r="1.2" fill="#ffffff" opacity="0.8" />
-              <ellipse className="pet-eyelid" cx="82" cy="87" rx="9" ry="9" fill={variant === "raccoon" ? c.mask : c.fur} />
-              <ellipse className="pet-eyelid" cx="118" cy="87" rx="9" ry="9" fill={variant === "raccoon" ? c.mask : c.fur} />
+              <ellipse
+                className="pet-eyelid"
+                cx="82"
+                cy="87"
+                rx="9"
+                ry="9"
+                fill={variant === "raccoon" ? c.mask : c.fur}
+              />
+              <ellipse
+                className="pet-eyelid"
+                cx="118"
+                cy="87"
+                rx="9"
+                ry="9"
+                fill={variant === "raccoon" ? c.mask : c.fur}
+              />
             </>
           )}
 
@@ -164,7 +224,11 @@ export function CritterSvg({ variant, colors, state = "idle", title, className =
               <ellipse cx="100" cy="102" rx="6.5" ry="4.8" fill="#183027" />
               <ellipse cx="98" cy="100.5" rx="2" ry="1.2" fill="#ffffff" opacity="0.6" />
               <path
-                d={state === "happy" || state === "comforted" || state === "playing" ? "M92 108 q4 6 8 0 q4 6 8 0" : "M94 108 q3 3 6 0 q3 3 6 0"}
+                d={
+                  state === "happy" || state === "comforted" || state === "playing"
+                    ? "M92 108 q4 6 8 0 q4 6 8 0"
+                    : "M94 108 q3 3 6 0 q3 3 6 0"
+                }
                 stroke="#183027"
                 strokeWidth="2.2"
                 fill="none"
@@ -262,9 +326,15 @@ export function StateEffects({ state }: { state: PetState }) {
       )}
       {state === "resting" && (
         <g fill="#2F6B58" fontFamily="var(--font-display)" fontWeight="700">
-          <text x="140" y="56" fontSize="18" className="zzz">z</text>
-          <text x="152" y="40" fontSize="14" className="zzz" style={{ animationDelay: "0.8s" }}>z</text>
-          <text x="160" y="26" fontSize="11" className="zzz" style={{ animationDelay: "1.6s" }}>z</text>
+          <text x="140" y="56" fontSize="18" className="zzz">
+            z
+          </text>
+          <text x="152" y="40" fontSize="14" className="zzz" style={{ animationDelay: "0.8s" }}>
+            z
+          </text>
+          <text x="160" y="26" fontSize="11" className="zzz" style={{ animationDelay: "1.6s" }}>
+            z
+          </text>
         </g>
       )}
       {state === "playing" && (

@@ -11,10 +11,25 @@ import { Stage } from "./Stage";
 import { CARE_ACTIONS, levelProgress, phaseLabel, reactionText } from "@/lib/game";
 import { OFFLINE_MESSAGE, tryAction } from "@/lib/safe-action";
 import type {
-  Animal, AnimalAsset, AssetState, CareAction, CareResult, ChapterOutline, Decor, Economy, HabitatSlot, Placement, RecoveryPhase,
+  Animal,
+  AnimalAsset,
+  AssetState,
+  CareAction,
+  CareResult,
+  ChapterOutline,
+  Decor,
+  Economy,
+  HabitatSlot,
+  Placement,
+  RecoveryPhase,
 } from "@/lib/types";
 
-const STATE_FOR: Record<CareAction, PetState> = { comfort: "comforted", snack: "snacking", play: "playing", rest: "resting" };
+const STATE_FOR: Record<CareAction, PetState> = {
+  comfort: "comforted",
+  snack: "snacking",
+  play: "playing",
+  rest: "resting",
+};
 const TUTORIAL: CareAction[] = ["comfort", "snack", "play"];
 const TUTORIAL_TIPS: Record<CareAction, string> = {
   comfort: "is still a little nervous. Start with a gentle comfort.",
@@ -24,10 +39,20 @@ const TUTORIAL_TIPS: Record<CareAction, string> = {
 };
 
 type Toast = { id: number; text: string; tone: "xp" | "acorn" | "info" };
-type Modal = { kind: "chapter"; chapter: { ordinal: number; title: string; phase: RecoveryPhase } } | { kind: "gift"; name: string } | null;
+type Modal =
+  | { kind: "chapter"; chapter: { ordinal: number; title: string; phase: RecoveryPhase } }
+  | { kind: "gift"; name: string }
+  | null;
 
 export function CareRoom(props: {
-  adoption: { id: string; nickname: string | null; bond_xp: number; level: number; phase: RecoveryPhase; care_count: number };
+  adoption: {
+    id: string;
+    nickname: string | null;
+    bond_xp: number;
+    level: number;
+    phase: RecoveryPhase;
+    care_count: number;
+  };
   animal: Pick<Animal, "name" | "species" | "placeholder_style" | "colors">;
   assets: Partial<Record<AssetState, AnimalAsset>>;
   economy: Economy;
@@ -106,8 +131,7 @@ export function CareRoom(props: {
     setPet(STATE_FOR[action]);
     const key = crypto.randomUUID();
     // On a network hiccup, retry once with the same key (idempotent: never double-rewards).
-    const result: CareResult =
-      (await tryAction(() => performCare(props.adoption.id, action, key))) ??
+    const result: CareResult = (await tryAction(() => performCare(props.adoption.id, action, key))) ??
       (await tryAction(() => performCare(props.adoption.id, action, key))) ?? { status: "error" };
     setBusy(null);
 
@@ -151,7 +175,9 @@ export function CareRoom(props: {
         setReaction(`${displayName} is still enjoying that. Try something else for a moment!`);
         if (result.retry_after_seconds) {
           const lastIso = new Date(
-            Date.now() + offset.current - (economy.actions[action].cooldown_seconds - result.retry_after_seconds) * 1000,
+            Date.now() +
+              offset.current -
+              (economy.actions[action].cooldown_seconds - result.retry_after_seconds) * 1000,
           ).toISOString();
           setLastTimes((l) => ({ ...l, [action]: lastIso }));
         }
@@ -194,7 +220,11 @@ export function CareRoom(props: {
                   <span
                     key={t.id}
                     className={`reward-toast absolute left-1/2 whitespace-nowrap rounded-full px-4 py-1.5 font-display text-lg font-bold shadow-lg ${
-                      t.tone === "acorn" ? "top-10 bg-honey text-ink" : t.tone === "xp" ? "bg-[#E8577A] text-white" : "bg-white text-forest"
+                      t.tone === "acorn"
+                        ? "top-10 bg-honey text-ink"
+                        : t.tone === "xp"
+                          ? "bg-[#E8577A] text-white"
+                          : "bg-white text-forest"
                     }`}
                   >
                     {t.tone === "acorn" ? "🌰 " : t.tone === "xp" ? "💗 " : "✨ "}
@@ -244,7 +274,10 @@ export function CareRoom(props: {
                   aria-hidden="true"
                 />
               )}
-              <span className={`text-3xl sm:text-4xl ${highlight ? "wobble-hover animate-bounce" : ""}`} aria-hidden="true">
+              <span
+                className={`text-3xl sm:text-4xl ${highlight ? "wobble-hover animate-bounce" : ""}`}
+                aria-hidden="true"
+              >
                 {a.emoji}
               </span>
               <span className="text-sm sm:text-base">{left > 0 ? `${left}s` : a.label}</span>
@@ -255,8 +288,13 @@ export function CareRoom(props: {
 
       {/* ---------------------------------------------------- tutorial tip */}
       {showTutorial && tutorialNext && (
-        <div className="slide-up flex items-center gap-3 rounded-[1.5rem] bg-forest px-4 py-3 text-cream shadow-soft" role="status">
-          <span className="text-2xl" aria-hidden="true">💡</span>
+        <div
+          className="slide-up flex items-center gap-3 rounded-[1.5rem] bg-forest px-4 py-3 text-cream shadow-soft"
+          role="status"
+        >
+          <span className="text-2xl" aria-hidden="true">
+            💡
+          </span>
           <p className="font-semibold">
             {props.welcome && done.size === 0 ? `Welcome home! ${displayName} ` : `${displayName} `}
             {TUTORIAL_TIPS[tutorialNext]}
@@ -282,7 +320,10 @@ export function CareRoom(props: {
             aria-valuenow={progress.pct}
             aria-label="Progress to next bond level"
           >
-            <div className="h-full rounded-full bg-gradient-to-r from-[#E8577A] to-honey transition-all duration-700" style={{ width: `${progress.pct}%` }} />
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-[#E8577A] to-honey transition-all duration-700"
+              style={{ width: `${progress.pct}%` }}
+            />
           </div>
           {nextChapter && (
             <p className="mt-1.5 text-xs font-semibold text-ink-soft">
@@ -294,9 +335,15 @@ export function CareRoom(props: {
       </div>
 
       <div className="flex flex-wrap gap-2 text-sm">
-        <Link href="/app/sanctuary" className={buttonClass("light", "sm")}>🏡 Decorate</Link>
-        <Link href="/app/stories" className={buttonClass("light", "sm")}>📖 Story</Link>
-        <Link href="/app/shop" className={buttonClass("light", "sm")}>🛍️ Shop</Link>
+        <Link href="/app/sanctuary" className={buttonClass("light", "sm")}>
+          🏡 Decorate
+        </Link>
+        <Link href="/app/stories" className={buttonClass("light", "sm")}>
+          📖 Story
+        </Link>
+        <Link href="/app/shop" className={buttonClass("light", "sm")}>
+          🛍️ Shop
+        </Link>
         <button
           type="button"
           className={buttonClass("honey", "sm")}
@@ -318,20 +365,33 @@ export function CareRoom(props: {
           📣 Share {animal.name}
         </button>
       </div>
-      {shareNote && <p className="text-sm font-bold text-forest" role="status">{shareNote}</p>}
+      {shareNote && (
+        <p className="text-sm font-bold text-forest" role="status">
+          {shareNote}
+        </p>
+      )}
 
       {/* ---------------------------------------------------- popups (chapter unlocks, gifts) */}
       <Dialog open={modal !== null} onClose={showNextModal} labelledBy="room-dialog-title" className="text-center">
         {modal?.kind === "chapter" && (
           <>
-            <div className="text-5xl" aria-hidden="true">📖</div>
-            <p className="mt-2 text-xs font-extrabold uppercase tracking-widest text-terracotta">New chapter unlocked</p>
+            <div className="text-5xl" aria-hidden="true">
+              📖
+            </div>
+            <p className="mt-2 text-xs font-extrabold uppercase tracking-widest text-terracotta">
+              New chapter unlocked
+            </p>
             <h2 id="room-dialog-title" className="mt-1 font-display text-2xl font-bold">
               Chapter {modal.chapter.ordinal}: {modal.chapter.title}
             </h2>
-            <p className="mt-2 text-ink-soft">{displayName} has entered a new phase: {phaseLabel(modal.chapter.phase)}.</p>
+            <p className="mt-2 text-ink-soft">
+              {displayName} has entered a new phase: {phaseLabel(modal.chapter.phase)}.
+            </p>
             <div className="mt-5 grid gap-2">
-              <Link href={`/app/stories#chapter-${adoption.id}-${modal.chapter.ordinal}`} className={buttonClass("primary", "md")}>
+              <Link
+                href={`/app/stories#chapter-${adoption.id}-${modal.chapter.ordinal}`}
+                className={buttonClass("primary", "md")}
+              >
                 Read the chapter
               </Link>
               <button type="button" className={buttonClass("ghost", "md")} onClick={showNextModal} data-autofocus>
@@ -342,9 +402,13 @@ export function CareRoom(props: {
         )}
         {modal?.kind === "gift" && (
           <>
-            <div className="text-5xl" aria-hidden="true">🎁</div>
+            <div className="text-5xl" aria-hidden="true">
+              🎁
+            </div>
             <p className="mt-2 text-xs font-extrabold uppercase tracking-widest text-terracotta">First-care gift</p>
-            <h2 id="room-dialog-title" className="mt-1 font-display text-2xl font-bold">You earned a {modal.name}!</h2>
+            <h2 id="room-dialog-title" className="mt-1 font-display text-2xl font-bold">
+              You earned a {modal.name}!
+            </h2>
             <p className="mt-2 text-ink-soft">
               {displayName} would love it in the sanctuary. Place it now, or keep caring and decorate later.
             </p>
@@ -363,14 +427,32 @@ export function CareRoom(props: {
   );
 }
 
-function NameEditor({ id, name, canonical, onSaved }: { id: string; name: string; canonical: string; onSaved: (n: string | null) => void }) {
+function NameEditor({
+  id,
+  name,
+  canonical,
+  onSaved,
+}: {
+  id: string;
+  name: string;
+  canonical: string;
+  onSaved: (n: string | null) => void;
+}) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(name === canonical ? "" : name);
   const [error, setError] = useState<string | null>(null);
   if (!editing) {
     return (
-      <button type="button" onClick={() => setEditing(true)} className="flex items-center gap-1 font-display text-xl font-bold" aria-label={`Rename ${name}`}>
-        {name} <span className="text-sm opacity-60" aria-hidden="true">✏️</span>
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className="flex items-center gap-1 font-display text-xl font-bold"
+        aria-label={`Rename ${name}`}
+      >
+        {name}{" "}
+        <span className="text-sm opacity-60" aria-hidden="true">
+          ✏️
+        </span>
       </button>
     );
   }
@@ -388,7 +470,9 @@ function NameEditor({ id, name, canonical, onSaved }: { id: string; name: string
         } else setError("Nicknames can be up to 30 characters.");
       }}
     >
-      <label htmlFor="nick" className="sr-only">Nickname</label>
+      <label htmlFor="nick" className="sr-only">
+        Nickname
+      </label>
       <input
         id="nick"
         value={value}
@@ -398,7 +482,9 @@ function NameEditor({ id, name, canonical, onSaved }: { id: string; name: string
         className="w-32 rounded-lg border border-sage-200 px-2 py-1 text-sm"
         autoFocus
       />
-      <button type="submit" className="rounded-lg bg-forest px-2 py-1 text-xs font-bold text-cream">Save</button>
+      <button type="submit" className="rounded-lg bg-forest px-2 py-1 text-xs font-bold text-cream">
+        Save
+      </button>
       {error && <span className="text-xs text-terracotta">{error}</span>}
     </form>
   );
@@ -409,11 +495,21 @@ function AcornBonus({ limit, earned }: { limit: number; earned: Set<CareAction> 
   if (limit <= 0) return null;
   const left = Math.max(0, limit - earned.size);
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl bg-honey/20 px-3 py-2 text-sm" data-testid="acorn-bonus">
+    <div
+      className="flex items-center justify-between gap-3 rounded-2xl bg-honey/20 px-3 py-2 text-sm"
+      data-testid="acorn-bonus"
+    >
       <span className="font-bold">🌰 Daily acorn bonus</span>
-      <span className="flex items-center gap-1.5" aria-label={left > 0 ? `${left} of ${limit} acorn activities left today` : "Today's acorn bonus complete"}>
+      <span
+        className="flex items-center gap-1.5"
+        aria-label={left > 0 ? `${left} of ${limit} acorn activities left today` : "Today's acorn bonus complete"}
+      >
         {Array.from({ length: limit }, (_, i) => (
-          <span key={i} className={`h-3 w-3 rounded-full ${i < earned.size ? "bg-honey-600" : "bg-white ring-1 ring-ink/15"}`} aria-hidden="true" />
+          <span
+            key={i}
+            className={`h-3 w-3 rounded-full ${i < earned.size ? "bg-honey-600" : "bg-white ring-1 ring-ink/15"}`}
+            aria-hidden="true"
+          />
         ))}
         <span className="ml-1 text-xs font-semibold text-ink-soft">
           {left > 0 ? `${left} left — try a different activity` : "Done for today · bond still grows"}

@@ -10,7 +10,9 @@ describe("svgToString", () => {
         <text>{"<hi>"}</text>
       </svg>,
     );
-    expect(out).toBe('<svg viewBox="0 0 10 10" class="a"><path stroke-width="2" d="M0 0"></path><text>&lt;hi&gt;</text></svg>');
+    expect(out).toBe(
+      '<svg viewBox="0 0 10 10" class="a"><path stroke-width="2" d="M0 0"></path><text>&lt;hi&gt;</text></svg>',
+    );
   });
   it("renders the placeholder character without hooks", () => {
     const out = svgToString(<CritterSvg uid="t" variant="raccoon" title="Maple" state="happy" />);

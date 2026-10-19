@@ -17,7 +17,9 @@ export default async function AdminAnimals() {
     <div className="grid gap-4">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl font-bold">Animals</h1>
-        <ButtonLink href="/admin/animals/new" size="sm">+ New animal</ButtonLink>
+        <ButtonLink href="/admin/animals/new" size="sm">
+          + New animal
+        </ButtonLink>
       </div>
       <div className="grid gap-3">
         {animals.map((a) => (
@@ -27,8 +29,13 @@ export default async function AdminAnimals() {
                 <AnimalArt animal={a} assets={assetMap(a)} />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-display text-xl font-bold">{a.name} <span className="text-sm font-normal text-ink-soft">· {a.species}</span></p>
-                <p className="text-sm text-ink-soft">/{a.slug} · {(a.animal_assets ?? []).filter((x) => x.is_active).length} active assets · {a.user_animals?.[0]?.count ?? 0} adoptions</p>
+                <p className="font-display text-xl font-bold">
+                  {a.name} <span className="text-sm font-normal text-ink-soft">· {a.species}</span>
+                </p>
+                <p className="text-sm text-ink-soft">
+                  /{a.slug} · {(a.animal_assets ?? []).filter((x) => x.is_active).length} active assets ·{" "}
+                  {a.user_animals?.[0]?.count ?? 0} adoptions
+                </p>
               </div>
               <StatusBadge status={a.status} />
             </Card>

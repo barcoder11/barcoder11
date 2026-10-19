@@ -21,10 +21,26 @@ export function phaseLabel(phase: RecoveryPhase) {
 
 // Text equivalents for every reaction (accessibility + flavour).
 const REACTIONS: Record<CareAction, string[]> = {
-  comfort: ["{name} snuggles into your hands and lets out a happy chirr.", "{name} blinks slowly — that's raccoon for 'thank you'.", "{name} leans in for another cuddle. Hearts everywhere!"],
-  snack: ["{name} nibbles a berry with tiny careful paws.", "{name} washes the berry in the creek first, very fancy.", "Crunch crunch! {name} looks very pleased."],
-  play: ["{name} pounces on the ball and rolls in the clover!", "{name} does a happy little hop-and-spin.", "{name} brings the ball back, then decides to keep it."],
-  rest: ["{name} curls up with tail over nose. Sweet dreams.", "{name} yawns enormously and settles into the blanket.", "{name} drifts off, dreaming of shiny pebbles."],
+  comfort: [
+    "{name} snuggles into your hands and lets out a happy chirr.",
+    "{name} blinks slowly — that's raccoon for 'thank you'.",
+    "{name} leans in for another cuddle. Hearts everywhere!",
+  ],
+  snack: [
+    "{name} nibbles a berry with tiny careful paws.",
+    "{name} washes the berry in the creek first, very fancy.",
+    "Crunch crunch! {name} looks very pleased.",
+  ],
+  play: [
+    "{name} pounces on the ball and rolls in the clover!",
+    "{name} does a happy little hop-and-spin.",
+    "{name} brings the ball back, then decides to keep it.",
+  ],
+  rest: [
+    "{name} curls up with tail over nose. Sweet dreams.",
+    "{name} yawns enormously and settles into the blanket.",
+    "{name} drifts off, dreaming of shiny pebbles.",
+  ],
 };
 
 export function reactionText(action: CareAction, name: string, seed: number) {

@@ -24,7 +24,12 @@ const STATES = [
 const IMAGE_TYPES = ["image/png", "image/webp", "image/jpeg", "image/gif"];
 const VIDEO_TYPES = ["video/mp4", "video/webm"];
 const EXT: Record<string, string> = {
-  "image/png": "png", "image/webp": "webp", "image/jpeg": "jpg", "image/gif": "gif", "video/mp4": "mp4", "video/webm": "webm",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/jpeg": "jpg",
+  "image/gif": "gif",
+  "video/mp4": "mp4",
+  "video/webm": "webm",
 };
 
 async function dimensions(file: File): Promise<{ width: number | null; height: number | null }> {
@@ -60,8 +65,10 @@ export function AssetUploader({ animalId, animalSlug }: { animalId: string; anim
     const alt = String(form.get("alt") ?? "").trim();
     setMsg(null);
     if (!file || file.size === 0) return setMsg({ tone: "error", text: "Choose a file." });
-    if (![...IMAGE_TYPES, ...VIDEO_TYPES].includes(file.type)) return setMsg({ tone: "error", text: "Use PNG, WebP, JPEG, GIF, MP4 or WebM. (SVG is not allowed.)" });
-    if (IMAGE_TYPES.includes(file.type) && file.size > 10 * 1024 * 1024) return setMsg({ tone: "error", text: "Images must be 10 MB or smaller." });
+    if (![...IMAGE_TYPES, ...VIDEO_TYPES].includes(file.type))
+      return setMsg({ tone: "error", text: "Use PNG, WebP, JPEG, GIF, MP4 or WebM. (SVG is not allowed.)" });
+    if (IMAGE_TYPES.includes(file.type) && file.size > 10 * 1024 * 1024)
+      return setMsg({ tone: "error", text: "Images must be 10 MB or smaller." });
     if (file.size > 50 * 1024 * 1024) return setMsg({ tone: "error", text: "Videos must be 50 MB or smaller." });
     if (alt.length < 3) return setMsg({ tone: "error", text: "Alt text is required (describe what's shown)." });
 
@@ -69,21 +76,23 @@ export function AssetUploader({ animalId, animalSlug }: { animalId: string; anim
     const { width, height } = await dimensions(file);
     const path = `animals/${animalSlug}/${state}-${crypto.randomUUID()}.${EXT[file.type]}`;
     const supabase = getBrowserClient();
-    const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, file, { contentType: file.type, upsert: false, cacheControl: "31536000" });
+    const { error } = await supabase.storage
+      .from(MEDIA_BUCKET)
+      .upload(path, file, { contentType: file.type, upsert: false, cacheControl: "31536000" });
     if (error) {
       setBusy(false);
       return setMsg({ tone: "error", text: `Upload failed: ${error.message}` });
     }
     const res = (await tryAction(() =>
       registerAsset({
-      animalId,
-      state: state as (typeof STATES)[number][0],
-      path,
-      mime: file.type,
-      size: file.size,
-      width,
-      height,
-      alt,
+        animalId,
+        state: state as (typeof STATES)[number][0],
+        path,
+        mime: file.type,
+        size: file.size,
+        width,
+        height,
+        alt,
         credits: String(form.get("credits") ?? ""),
         notes: String(form.get("notes") ?? ""),
       }),
@@ -104,12 +113,20 @@ export function AssetUploader({ animalId, animalSlug }: { animalId: string; anim
       <Field label="Animation state / slot">
         <select name="state" className={adminInput} defaultValue="idle">
           {STATES.map(([v, l]) => (
-            <option key={v} value={v}>{l}</option>
+            <option key={v} value={v}>
+              {l}
+            </option>
           ))}
         </select>
       </Field>
       <Field label="File" hint="Transparent PNG/WebP for sprites · MP4/WebM loops · max 10 MB images / 50 MB video">
-        <input type="file" name="file" accept={[...IMAGE_TYPES, ...VIDEO_TYPES].join(",")} className="text-sm" data-testid="asset-file" />
+        <input
+          type="file"
+          name="file"
+          accept={[...IMAGE_TYPES, ...VIDEO_TYPES].join(",")}
+          className="text-sm"
+          data-testid="asset-file"
+        />
       </Field>
       <Field label="Alt text *" hint="Describe the image for screen readers">
         <input name="alt" maxLength={300} className={adminInput} placeholder="Maple the raccoon hugging a blanket" />
@@ -119,12 +136,23 @@ export function AssetUploader({ animalId, animalSlug }: { animalId: string; anim
       </Field>
       <div className="md:col-span-2">
         <Field label="Source / licence notes (private)">
-          <input name="notes" maxLength={1000} className={adminInput} placeholder="Generated with … / licensed from …" />
+          <input
+            name="notes"
+            maxLength={1000}
+            className={adminInput}
+            placeholder="Generated with … / licensed from …"
+          />
         </Field>
       </div>
-      {msg && <Notice tone={msg.tone} className="md:col-span-2">{msg.text}</Notice>}
+      {msg && (
+        <Notice tone={msg.tone} className="md:col-span-2">
+          {msg.text}
+        </Notice>
+      )}
       <div>
-        <Button type="submit" disabled={busy}>{busy ? "Uploading…" : "Upload asset"}</Button>
+        <Button type="submit" disabled={busy}>
+          {busy ? "Uploading…" : "Upload asset"}
+        </Button>
       </div>
     </form>
   );

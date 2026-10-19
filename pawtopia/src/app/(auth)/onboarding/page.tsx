@@ -17,7 +17,9 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/onboa
   return (
     <Card className="w-full max-w-md p-7 pop-in">
       <div className="mb-5 text-center">
-        <div className="text-5xl" aria-hidden="true">🌿</div>
+        <div className="text-5xl" aria-hidden="true">
+          🌿
+        </div>
         <h1 className="mt-2 font-display text-3xl font-bold">Let&apos;s set up your sanctuary</h1>
         <p className="mt-1 text-ink-soft">Just a couple of quick things — it takes 10 seconds.</p>
       </div>

@@ -15,12 +15,19 @@ export default async function AdminOverview() {
     getEconomy(),
     getIsAdmin(),
     supabase.from("animals").select("slug, name, status").order("sort_order"),
-    supabase.from("admin_audit_logs").select("id, action, entity_type, entity_id, created_at").order("created_at", { ascending: false }).limit(12),
+    supabase
+      .from("admin_audit_logs")
+      .select("id, action, entity_type, entity_id, created_at")
+      .order("created_at", { ascending: false })
+      .limit(12),
   ]);
   const o = (one(overviewResult, "admin overview") ?? {}) as Record<string, number>;
   const animals = many<{ slug: string; name: string; status: string }>(animalsResult, "animals");
   // Audit rows are admin-only (RLS returns none to editors).
-  const audit = many<{ id: string; action: string; entity_type: string; entity_id: string | null; created_at: string }>(auditResult, "audit log");
+  const audit = many<{ id: string; action: string; entity_type: string; entity_id: string | null; created_at: string }>(
+    auditResult,
+    "audit log",
+  );
   const stats = [
     ["Players", o.players],
     ["Adoptions", o.adoptions],
@@ -37,8 +44,12 @@ export default async function AdminOverview() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-3xl font-bold">Creator dashboard</h1>
         <div className="flex gap-2">
-          <ButtonLink href="/admin/animals/new" size="sm">+ New animal</ButtonLink>
-          <ButtonLink href="/admin/rescues/new" size="sm" variant="honey">+ New rescue episode</ButtonLink>
+          <ButtonLink href="/admin/animals/new" size="sm">
+            + New animal
+          </ButtonLink>
+          <ButtonLink href="/admin/rescues/new" size="sm" variant="honey">
+            + New rescue episode
+          </ButtonLink>
         </div>
       </div>
 
@@ -55,7 +66,8 @@ export default async function AdminOverview() {
         <Card>
           <h2 className="mb-1 font-display text-xl font-bold">Launch mode</h2>
           <p className="mb-4 text-sm text-ink-soft">
-            <strong>Waitlist</strong>: public pages + email waitlist, no adoptions. <strong>Open beta</strong>: sign-up and adoption are live.
+            <strong>Waitlist</strong>: public pages + email waitlist, no adoptions. <strong>Open beta</strong>: sign-up
+            and adoption are live.
           </p>
           {isAdmin ? (
             <ActionForm action={updateLaunchSettings}>
@@ -66,22 +78,32 @@ export default async function AdminOverview() {
                 </select>
               </Field>
               <Field label="Featured animal (landing page hero)">
-                <select name="featured_animal_slug" defaultValue={launch.featured_animal_slug ?? ""} className={adminInput}>
+                <select
+                  name="featured_animal_slug"
+                  defaultValue={launch.featured_animal_slug ?? ""}
+                  className={adminInput}
+                >
                   <option value="">Automatic</option>
                   {animals.map((a) => (
-                    <option key={a.slug} value={a.slug}>{a.name} ({a.status})</option>
+                    <option key={a.slug} value={a.slug}>
+                      {a.name} ({a.status})
+                    </option>
                   ))}
                 </select>
               </Field>
             </ActionForm>
           ) : (
-            <p className="text-sm">Current mode: <strong>{launch.mode}</strong> (admins can change this).</p>
+            <p className="text-sm">
+              Current mode: <strong>{launch.mode}</strong> (admins can change this).
+            </p>
           )}
         </Card>
 
         <Card>
           <h2 className="mb-1 font-display text-xl font-bold">Economy</h2>
-          <p className="mb-4 text-sm text-ink-soft">Rewards and cooldowns are applied by the server. Edit carefully — validated before saving.</p>
+          <p className="mb-4 text-sm text-ink-soft">
+            Rewards and cooldowns are applied by the server. Edit carefully — validated before saving.
+          </p>
           {isAdmin ? (
             <ActionForm action={updateEconomy} submitLabel="Save economy">
               <textarea

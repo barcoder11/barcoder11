@@ -16,7 +16,10 @@ export type FirstTouch = {
 
 export function cleanToken(value: string | null | undefined, max = 64): string | undefined {
   if (!value) return undefined;
-  const cleaned = value.toLowerCase().replace(/[^a-z0-9_.-]/g, "").slice(0, max);
+  const cleaned = value
+    .toLowerCase()
+    .replace(/[^a-z0-9_.-]/g, "")
+    .slice(0, max);
   return cleaned || undefined;
 }
 

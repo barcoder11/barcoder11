@@ -15,7 +15,5 @@ export default defineConfig({
     trace: "retain-on-failure",
     launchOptions: process.env.PW_CHROMIUM_PATH ? { executablePath: process.env.PW_CHROMIUM_PATH } : undefined,
   },
-  projects: [
-    { name: "mobile", use: { ...devices["Pixel 7"], viewport: { width: 360, height: 780 } } },
-  ],
+  projects: [{ name: "mobile", use: { ...devices["Pixel 7"], viewport: { width: 360, height: 780 } } }],
 });

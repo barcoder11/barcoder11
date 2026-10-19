@@ -23,7 +23,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     pages.push({ url: `${base}/r/${r.slug}`, lastModified: r.updated_at, changeFrequency: "weekly", priority: 0.9 });
   }
   for (const a of animals ?? []) {
-    pages.push({ url: `${base}/animals/${a.slug}`, lastModified: a.updated_at, changeFrequency: "weekly", priority: 0.8 });
+    pages.push({
+      url: `${base}/animals/${a.slug}`,
+      lastModified: a.updated_at,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    });
   }
   return pages;
 }

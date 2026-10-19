@@ -14,9 +14,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <Link href="/admin" className="flex items-center gap-2">
             <Logo className="text-lg" />
-            <span className="rounded-full bg-terracotta px-2 py-0.5 text-xs font-extrabold uppercase text-cream">Admin</span>
+            <span className="rounded-full bg-terracotta px-2 py-0.5 text-xs font-extrabold uppercase text-cream">
+              Admin
+            </span>
           </Link>
-          <Link href="/app" className="text-sm font-bold text-forest hover:underline">Back to game →</Link>
+          <Link href="/app" className="text-sm font-bold text-forest hover:underline">
+            Back to game →
+          </Link>
         </div>
         <div className="mx-auto max-w-6xl px-4 pb-2">
           <AdminNav isAdmin={isAdmin} />

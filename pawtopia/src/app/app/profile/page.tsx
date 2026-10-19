@@ -29,9 +29,13 @@ export default async function ProfilePage() {
       <Card className="grid gap-3">
         <h2 className="font-display text-xl font-bold">Your data</h2>
         <p className="text-sm text-ink-soft">Download everything Pawtopia stores about your account as a JSON file.</p>
-        <a href="/app/profile/export" className="font-bold text-forest underline">Download my data</a>
+        <a href="/app/profile/export" className="font-bold text-forest underline">
+          Download my data
+        </a>
         <form action="/auth/signout" method="post">
-          <button type="submit" className="font-bold text-ink-soft underline" data-testid="sign-out">Sign out</button>
+          <button type="submit" className="font-bold text-ink-soft underline" data-testid="sign-out">
+            Sign out
+          </button>
         </form>
       </Card>
       <Card>

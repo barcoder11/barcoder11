@@ -54,7 +54,10 @@ export async function placeDecor(slotId: string, slug: string): Promise<PlaceRes
     .safeParse({ slotId, slug });
   if (!parsed.success) return { status: "invalid_request" };
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("place_decor", { p_slot_id: parsed.data.slotId, p_decor_slug: parsed.data.slug });
+  const { data, error } = await supabase.rpc("place_decor", {
+    p_slot_id: parsed.data.slotId,
+    p_decor_slug: parsed.data.slug,
+  });
   if (error) return { status: "error" };
   return data as PlaceResult;
 }
@@ -123,8 +126,12 @@ export type DeleteState = { error?: string };
 
 /** Permanently deletes the account and all player data (cascades from auth.users). */
 export async function deleteAccount(_prev: DeleteState, form: FormData): Promise<DeleteState> {
-  if (String(form.get("confirm") ?? "").trim().toUpperCase() !== "DELETE") {
-    return { error: 'Type DELETE to confirm.' };
+  if (
+    String(form.get("confirm") ?? "")
+      .trim()
+      .toUpperCase() !== "DELETE"
+  ) {
+    return { error: "Type DELETE to confirm." };
   }
   const user = await getSessionUser();
   if (!user) redirect("/auth");

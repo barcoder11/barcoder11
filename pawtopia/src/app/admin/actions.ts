@@ -16,9 +16,23 @@ async function editorClient() {
   return (await getIsEditor()) ? createClient() : null;
 }
 
-const slug = z.string().trim().toLowerCase().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Use lowercase letters, numbers and dashes");
-const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().or(z.literal(""));
-const optionalText = (max: number) => z.string().trim().max(max).optional().transform((v) => (v ? v : null));
+const slug = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Use lowercase letters, numbers and dashes");
+const hex = z
+  .string()
+  .regex(/^#[0-9a-fA-F]{6}$/)
+  .optional()
+  .or(z.literal(""));
+const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .optional()
+    .transform((v) => (v ? v : null));
 
 const ALLOWED_VIDEO_HOSTS = ["tiktok.com", "instagram.com", "facebook.com", "fb.watch", "youtube.com", "youtu.be"];
 const videoUrl = z
@@ -30,7 +44,9 @@ const videoUrl = z
     if (!v) return true;
     try {
       const u = new URL(v);
-      return u.protocol === "https:" && ALLOWED_VIDEO_HOSTS.some((h) => u.hostname === h || u.hostname.endsWith(`.${h}`));
+      return (
+        u.protocol === "https:" && ALLOWED_VIDEO_HOSTS.some((h) => u.hostname === h || u.hostname.endsWith(`.${h}`))
+      );
     } catch {
       return false;
     }
@@ -51,20 +67,35 @@ const animalSchema = z.object({
   name: z.string().trim().min(1).max(40),
   species: z.string().trim().min(1).max(40),
   placeholder_style: z.enum(["raccoon", "otter", "penguin", "fox", "squirrel", "generic"]),
-  habitat_slug: z.string().trim().max(60).optional().transform((v) => v || null),
+  habitat_slug: z
+    .string()
+    .trim()
+    .max(60)
+    .optional()
+    .transform((v) => v || null),
   tagline: optionalText(140),
   bio: optionalText(2000),
   appearance: optionalText(1000),
   personality_tags: z
     .string()
     .optional()
-    .transform((v) => (v ?? "").split(",").map((t) => t.trim()).filter(Boolean).slice(0, 8).map((t) => t.slice(0, 24))),
+    .transform((v) =>
+      (v ?? "")
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .slice(0, 8)
+        .map((t) => t.slice(0, 24)),
+    ),
   fur: hex,
   mask: hex,
   accent: hex,
   belly: hex,
   sort_order: z.coerce.number().int().min(0).max(10000).default(100),
-  featured: z.string().optional().transform((v) => v === "on"),
+  featured: z
+    .string()
+    .optional()
+    .transform((v) => v === "on"),
 });
 
 function animalRow(d: z.infer<typeof animalSchema>) {
@@ -72,9 +103,18 @@ function animalRow(d: z.infer<typeof animalSchema>) {
     (["fur", "mask", "accent", "belly"] as const).filter((k) => d[k]).map((k) => [k, d[k]]),
   );
   return {
-    slug: d.slug, name: d.name, species: d.species, placeholder_style: d.placeholder_style, habitat_slug: d.habitat_slug,
-    tagline: d.tagline, bio: d.bio, appearance: d.appearance, personality_tags: d.personality_tags, colors,
-    sort_order: d.sort_order, featured: d.featured,
+    slug: d.slug,
+    name: d.name,
+    species: d.species,
+    placeholder_style: d.placeholder_style,
+    habitat_slug: d.habitat_slug,
+    tagline: d.tagline,
+    bio: d.bio,
+    appearance: d.appearance,
+    personality_tags: d.personality_tags,
+    colors,
+    sort_order: d.sort_order,
+    featured: d.featured,
   };
 }
 
@@ -83,7 +123,11 @@ export async function createAnimal(_prev: FormState, form: FormData): Promise<Fo
   if (!parsed.success) return { error: firstError(parsed.error) };
   const supabase = await editorClient();
   if (!supabase) return FORBIDDEN;
-  const { data, error } = await supabase.from("animals").insert({ ...animalRow(parsed.data), status: "draft" }).select("id").single();
+  const { data, error } = await supabase
+    .from("animals")
+    .insert({ ...animalRow(parsed.data), status: "draft" })
+    .select("id")
+    .single();
   if (error) return { error: error.code === "23505" ? "That slug is already taken." : error.message };
   redirect(`/admin/animals/${data.id}?created=1`);
 }
@@ -112,7 +156,8 @@ export async function deleteDraftAnimal(id: string) {
   const supabase = await editorClient();
   if (!supabase) return FORBIDDEN;
   const { data, error } = await supabase.from("animals").delete().eq("id", id).eq("status", "draft").select("id");
-  if (error || !data?.length) return { error: "Only drafts without rescue episodes or adoptions can be deleted. Archive instead." };
+  if (error || !data?.length)
+    return { error: "Only drafts without rescue episodes or adoptions can be deleted. Archive instead." };
   redirect("/admin/animals");
 }
 
@@ -125,7 +170,12 @@ const chapterSchema = z.object({
   unlock_bond_xp: z.coerce.number().int().min(0).max(100000),
 });
 
-export async function saveChapter(animalId: string, chapterId: string | null, _prev: FormState, form: FormData): Promise<FormState> {
+export async function saveChapter(
+  animalId: string,
+  chapterId: string | null,
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
   const parsed = chapterSchema.safeParse(formObject(form));
   if (!parsed.success) return { error: firstError(parsed.error) };
   const supabase = await editorClient();
@@ -133,7 +183,8 @@ export async function saveChapter(animalId: string, chapterId: string | null, _p
   const res = chapterId
     ? await supabase.from("story_chapters").update(parsed.data).eq("id", chapterId)
     : await supabase.from("story_chapters").insert({ ...parsed.data, animal_id: animalId });
-  if (res.error) return { error: res.error.code === "23505" ? "A chapter with that number already exists." : res.error.message };
+  if (res.error)
+    return { error: res.error.code === "23505" ? "A chapter with that number already exists." : res.error.message };
   revalidatePath(`/admin/animals/${animalId}`);
   return { ok: true, message: "Chapter saved." };
 }
@@ -150,10 +201,25 @@ const IMAGE_TYPES = ["image/png", "image/webp", "image/jpeg", "image/gif"];
 const VIDEO_TYPES = ["video/mp4", "video/webm"];
 const assetSchema = z.object({
   animalId: z.string().uuid(),
-  state: z.enum(["cover", "avatar", "idle", "happy", "comforted", "snacking", "playing", "resting", "poster", "teaser"]),
+  state: z.enum([
+    "cover",
+    "avatar",
+    "idle",
+    "happy",
+    "comforted",
+    "snacking",
+    "playing",
+    "resting",
+    "poster",
+    "teaser",
+  ]),
   path: z.string().regex(/^animals\/[a-z0-9-]+\/[A-Za-z0-9._-]+$/),
   mime: z.enum([...IMAGE_TYPES, ...VIDEO_TYPES] as [string, ...string[]]),
-  size: z.number().int().positive().max(50 * 1024 * 1024),
+  size: z
+    .number()
+    .int()
+    .positive()
+    .max(50 * 1024 * 1024),
   width: z.number().int().positive().nullable(),
   height: z.number().int().positive().nullable(),
   alt: z.string().trim().min(3, "Alt text is required").max(300),
@@ -172,7 +238,8 @@ export async function registerAsset(input: z.input<typeof assetSchema>): Promise
   const user = await getSessionUser();
 
   const { data: animal } = await supabase.from("animals").select("id, slug").eq("id", d.animalId).single();
-  if (!animal || !d.path.startsWith(`animals/${animal.slug}/`)) return { error: "Upload path doesn't match this animal." };
+  if (!animal || !d.path.startsWith(`animals/${animal.slug}/`))
+    return { error: "Upload path doesn't match this animal." };
 
   // Confirm the object really exists in storage before referencing it.
   const folder = d.path.split("/").slice(0, 2).join("/");
@@ -181,7 +248,12 @@ export async function registerAsset(input: z.input<typeof assetSchema>): Promise
   if (!listed?.some((o) => o.name === file)) return { error: "Uploaded file not found in storage." };
 
   const publicUrl = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(d.path).data.publicUrl;
-  await supabase.from("animal_assets").update({ is_active: false }).eq("animal_id", d.animalId).eq("state", d.state).eq("is_active", true);
+  await supabase
+    .from("animal_assets")
+    .update({ is_active: false })
+    .eq("animal_id", d.animalId)
+    .eq("state", d.state)
+    .eq("is_active", true);
   const { error } = await supabase.from("animal_assets").insert({
     animal_id: d.animalId,
     state: d.state as AssetState,
@@ -210,7 +282,12 @@ export async function setAssetActive(assetId: string, active: boolean) {
   const { data: asset } = await supabase.from("animal_assets").select("animal_id, state").eq("id", assetId).single();
   if (!asset) return { error: "Not found" };
   if (active) {
-    await supabase.from("animal_assets").update({ is_active: false }).eq("animal_id", asset.animal_id).eq("state", asset.state).eq("is_active", true);
+    await supabase
+      .from("animal_assets")
+      .update({ is_active: false })
+      .eq("animal_id", asset.animal_id)
+      .eq("state", asset.state)
+      .eq("is_active", true);
   }
   const { error } = await supabase.from("animal_assets").update({ is_active: active }).eq("id", assetId);
   revalidatePath(`/admin/animals/${asset.animal_id}`);
@@ -221,7 +298,11 @@ export async function setAssetActive(assetId: string, active: boolean) {
 export async function deleteAsset(assetId: string) {
   const supabase = await editorClient();
   if (!supabase) return FORBIDDEN;
-  const { data: asset } = await supabase.from("animal_assets").select("animal_id, storage_path").eq("id", assetId).single();
+  const { data: asset } = await supabase
+    .from("animal_assets")
+    .select("animal_id, storage_path")
+    .eq("id", assetId)
+    .single();
   if (!asset) return { error: "Not found" };
   await supabase.storage.from(MEDIA_BUCKET).remove([asset.storage_path]);
   await supabase.from("animal_assets").delete().eq("id", assetId);
@@ -252,14 +333,34 @@ const rescueSchema = z.object({
   title: z.string().trim().min(3).max(120),
   synopsis: optionalText(600),
   story_body: optionalText(5000),
-  season: z.coerce.number().int().min(1).max(99).optional().or(z.literal("").transform(() => undefined)),
-  episode: z.coerce.number().int().min(1).max(999).optional().or(z.literal("").transform(() => undefined)),
+  season: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(99)
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+  episode: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(999)
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
   tiktok_url: videoUrl,
   instagram_url: videoUrl,
   facebook_url: videoUrl,
   youtube_url: videoUrl,
-  poster_asset_id: z.string().uuid().optional().or(z.literal("").transform(() => undefined)),
-  teaser_asset_id: z.string().uuid().optional().or(z.literal("").transform(() => undefined)),
+  poster_asset_id: z
+    .string()
+    .uuid()
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+  teaser_asset_id: z
+    .string()
+    .uuid()
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
 });
 
 function rescueRow(d: z.infer<typeof rescueSchema>) {
@@ -278,7 +379,11 @@ export async function createRescue(_prev: FormState, form: FormData): Promise<Fo
   if (!parsed.success) return { error: firstError(parsed.error) };
   const supabase = await editorClient();
   if (!supabase) return FORBIDDEN;
-  const { data, error } = await supabase.from("rescue_stories").insert({ ...rescueRow(parsed.data), status: "draft" }).select("id").single();
+  const { data, error } = await supabase
+    .from("rescue_stories")
+    .insert({ ...rescueRow(parsed.data), status: "draft" })
+    .select("id")
+    .single();
   if (error) return { error: error.code === "23505" ? "That slug is already taken." : error.message };
   redirect(`/admin/rescues/${data.id}?created=1`);
 }
@@ -326,7 +431,9 @@ export async function updateLaunchSettings(_prev: FormState, form: FormData): Pr
     .from("app_settings")
     .upsert({ key: "launch", value: parsed.data, updated_by: user?.id, updated_at: new Date().toISOString() });
   revalidatePath("/admin");
-  return error ? { error: error.message } : { ok: true, message: `Saved — game is now in ${parsed.data.mode === "open" ? "open beta" : "waitlist"} mode.` };
+  return error
+    ? { error: error.message }
+    : { ok: true, message: `Saved — game is now in ${parsed.data.mode === "open" ? "open beta" : "waitlist"} mode.` };
 }
 
 const economySchema = z.object({
@@ -341,7 +448,10 @@ const economySchema = z.object({
           cooldown_seconds: z.number().int().min(1).max(86400),
         }),
       ]),
-    ) as Record<"comfort" | "snack" | "play" | "rest", z.ZodObject<{ xp: z.ZodNumber; acorns: z.ZodNumber; cooldown_seconds: z.ZodNumber }>>,
+    ) as Record<
+      "comfort" | "snack" | "play" | "rest",
+      z.ZodObject<{ xp: z.ZodNumber; acorns: z.ZodNumber; cooldown_seconds: z.ZodNumber }>
+    >,
   ),
   daily_acorn_actions: z.number().int().min(0).max(4),
   daily_xp_cap: z.number().int().min(0).max(100000),
@@ -365,7 +475,9 @@ export async function updateEconomy(_prev: FormState, form: FormData): Promise<F
     .from("app_settings")
     .upsert({ key: "economy", value: parsed.data, updated_by: user?.id, updated_at: new Date().toISOString() });
   revalidatePath("/admin");
-  return error ? { error: error.message } : { ok: true, message: "Economy updated. New values apply to the next care action." };
+  return error
+    ? { error: error.message }
+    : { ok: true, message: "Economy updated. New values apply to the next care action." };
 }
 
 // ------------------------------------------------------------------ decorations (admin only)
@@ -377,7 +489,10 @@ const decorSchema = z.object({
   slot_category: z.enum(["small", "large", "hanging"]),
   art_key: z.enum(["blanket", "bowl", "flowers", "ball", "lantern", "bunting", "tree", "den", "pond", "generic"]),
   sort_order: z.coerce.number().int().min(0).max(10000).default(100),
-  enabled: z.string().optional().transform((v) => v === "on"),
+  enabled: z
+    .string()
+    .optional()
+    .transform((v) => v === "on"),
 });
 
 export async function saveDecor(id: string | null, _prev: FormState, form: FormData): Promise<FormState> {
@@ -391,7 +506,12 @@ export async function saveDecor(id: string | null, _prev: FormState, form: FormD
     : await supabase.from("decor_catalog").insert(row);
   if (error) return { error: error.code === "23505" ? "That slug is already taken." : error.message };
   revalidatePath("/admin/decor");
-  return { ok: true, message: id ? "Saved." : `Added ${parsed.data.name} to the shop${parsed.data.enabled ? "" : " (hidden until enabled)"}.` };
+  return {
+    ok: true,
+    message: id
+      ? "Saved."
+      : `Added ${parsed.data.name} to the shop${parsed.data.enabled ? "" : " (hidden until enabled)"}.`,
+  };
 }
 
 // ------------------------------------------------------------------ waitlist (admin only)

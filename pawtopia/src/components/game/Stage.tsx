@@ -47,7 +47,12 @@ export function Stage({
         const decor = placed ? decorBySlug[placed.decor_slug] : undefined;
         if (!decor) return null;
         return (
-          <div key={slot.id} className="pointer-events-none absolute pop-in" style={slotStyle(slot)} data-testid={`placed-${decor.slug}`}>
+          <div
+            key={slot.id}
+            className="pointer-events-none absolute pop-in"
+            style={slotStyle(slot)}
+            data-testid={`placed-${decor.slug}`}
+          >
             <DecorArt artKey={decor.art_key} title={decor.name} className="w-full" />
           </div>
         );
@@ -58,4 +63,8 @@ export function Stage({
   );
 }
 
-export const SCENE_STYLE: Record<string, string> = { "forest-glade": "forest", riverbank: "river", "frosty-cove": "snow" };
+export const SCENE_STYLE: Record<string, string> = {
+  "forest-glade": "forest",
+  riverbank: "river",
+  "frosty-cove": "snow",
+};

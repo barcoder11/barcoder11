@@ -17,13 +17,24 @@ export function track(event: EventName, data: { rescueSlug?: string; animalSlug?
     },
   });
   // keepalive lets the request finish even if the user navigates away.
-  return fetch("/api/track", { method: "POST", body, keepalive: true, headers: { "content-type": "application/json" } }).catch(
-    () => undefined,
-  );
+  return fetch("/api/track", {
+    method: "POST",
+    body,
+    keepalive: true,
+    headers: { "content-type": "application/json" },
+  }).catch(() => undefined);
 }
 
 /** Fires one page-view event per page load (server dedupes per visitor per day). */
-export function TrackView({ event, rescueSlug, animalSlug }: { event: EventName; rescueSlug?: string; animalSlug?: string }) {
+export function TrackView({
+  event,
+  rescueSlug,
+  animalSlug,
+}: {
+  event: EventName;
+  rescueSlug?: string;
+  animalSlug?: string;
+}) {
   useEffect(() => {
     track(event, { rescueSlug, animalSlug });
   }, [event, rescueSlug, animalSlug]);
