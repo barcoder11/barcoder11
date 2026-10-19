@@ -5,7 +5,14 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSessionUser } from "@/lib/auth";
+import { log } from "@/lib/log";
 import type { CareAction, CareResult, Placement } from "@/lib/types";
+
+/** Logs a failed database call (error code only) and returns the generic failure. */
+function failure(context: string, error: { code?: string }) {
+  log.error(`${context} failed`, { code: error.code });
+  return { status: "error" } as const;
+}
 
 const uuid = z.string().uuid();
 const careSchema = z.object({
@@ -27,7 +34,7 @@ export async function performCare(userAnimalId: string, action: CareAction, key:
     p_action: parsed.data.action,
     p_idempotency_key: parsed.data.key,
   });
-  if (error) return { status: "error" };
+  if (error) return failure("perform_care", error);
   return data as CareResult;
 }
 
@@ -41,7 +48,7 @@ export async function buyDecor(slug: string, key: string): Promise<ShopResult> {
     p_decor_slug: parsed.data.slug,
     p_idempotency_key: parsed.data.key,
   });
-  if (error) return { status: "error" };
+  if (error) return failure("purchase_decor", error);
   revalidatePath("/app/sanctuary");
   return data as ShopResult;
 }
@@ -58,7 +65,7 @@ export async function placeDecor(slotId: string, slug: string): Promise<PlaceRes
     p_slot_id: parsed.data.slotId,
     p_decor_slug: parsed.data.slug,
   });
-  if (error) return { status: "error" };
+  if (error) return failure("place_decor", error);
   return data as PlaceResult;
 }
 
@@ -66,7 +73,7 @@ export async function removeDecor(slotId: string): Promise<PlaceResult> {
   if (!/^[a-z0-9-]{1,40}$/.test(slotId)) return { status: "invalid_request" };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("remove_decor", { p_slot_id: slotId });
-  if (error) return { status: "error" };
+  if (error) return failure("remove_decor", error);
   return data as PlaceResult;
 }
 
@@ -78,7 +85,7 @@ export async function renameAdoption(userAnimalId: string, nickname: string) {
     p_user_animal_id: parsed.data.id,
     p_nickname: parsed.data.nickname || null,
   });
-  if (error) return { status: "error" };
+  if (error) return failure("rename_adoption", error);
   revalidatePath(`/app/animals/${parsed.data.id}`);
   return data as { status: string; nickname?: string | null };
 }
@@ -88,7 +95,7 @@ export async function renameSanctuary(name: string) {
   if (!parsed.success) return { status: "invalid_name" };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("rename_sanctuary", { p_name: parsed.data });
-  if (error) return { status: "error" };
+  if (error) return failure("rename_sanctuary", error);
   revalidatePath("/app/sanctuary");
   return data as { status: string };
 }
@@ -117,6 +124,7 @@ export async function saveProfile(_prev: ProfileState, form: FormData): Promise<
     p_marketing_opt_in: parsed.data.marketing,
     p_reduced_motion: parsed.data.reducedMotion,
   });
+  if (error) log.error("update_profile failed", { code: error.code });
   if (error || data?.status !== "ok") return { status: "error", message: "We couldn't save your settings." };
   revalidatePath("/app", "layout");
   return { status: "ok", message: "Saved!" };
@@ -138,7 +146,10 @@ export async function deleteAccount(_prev: DeleteState, form: FormData): Promise
   const admin = createAdminClient();
   if (!admin) return { error: "Account deletion isn't configured on this server yet. Please contact support." };
   const { error } = await admin.auth.admin.deleteUser(user.id);
-  if (error) return { error: "We couldn't delete your account. Please try again." };
+  if (error) {
+    log.error("account deletion failed", { code: error.code, status: error.status });
+    return { error: "We couldn't delete your account. Please try again." };
+  }
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/?deleted=1");

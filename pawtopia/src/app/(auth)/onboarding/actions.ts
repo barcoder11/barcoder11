@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { TERMS_VERSION } from "@/lib/env";
 import { sanitizeNext } from "@/lib/safe-redirect";
+import { log } from "@/lib/log";
 
 export type OnboardingState = { error?: string };
 
@@ -44,6 +45,7 @@ export async function completeOnboarding(_prev: OnboardingState, form: FormData)
     p_terms_version: TERMS_VERSION,
     p_marketing_opt_in: parsed.data.marketing === "on",
   });
+  if (error) log.error("complete_onboarding failed", { code: error.code });
   if (error || data?.status !== "ok") return { error: "We couldn't save that. Please try again." };
   redirect(sanitizeNext(parsed.data.next, "/app"));
 }

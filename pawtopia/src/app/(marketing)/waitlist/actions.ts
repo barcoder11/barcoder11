@@ -8,6 +8,7 @@ import { emailConfigured, sendEmail } from "@/lib/email";
 import { env } from "@/lib/env";
 import { clientKey } from "@/lib/request";
 import { hashToken, newToken } from "@/lib/tokens";
+import { log } from "@/lib/log";
 
 export type WaitlistState = { status: "idle" | "ok" | "error"; message?: string };
 
@@ -44,7 +45,10 @@ export async function joinWaitlist(_prev: WaitlistState, form: FormData): Promis
     p_source: { ...(touch ?? { source: "direct" }), form: parsed.data.form ?? null },
     p_client_key: await clientKey("waitlist"),
   });
-  if (error) return { status: "error", message: "Something went wrong. Please try again in a moment." };
+  if (error) {
+    log.error("waitlist_upsert failed", { code: error.code });
+    return { status: "error", message: "Something went wrong. Please try again in a moment." };
+  }
   if (data?.action === "invalid") return { status: "error", message: "Please enter a valid email address." };
   if (data?.action === "rate_limited") {
     return { status: "error", message: "Too many sign-ups from this connection. Please try again in an hour." };

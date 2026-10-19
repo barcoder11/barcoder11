@@ -87,6 +87,9 @@ export async function completeOnboarding(page: Page, name = "Sam") {
   await page.getByRole("checkbox", { name: /I agree to the/ }).check();
   await page.getByRole("checkbox", { name: /13 years old/ }).check();
   await page.getByRole("button", { name: "Continue" }).click();
+  // Wait until the server has saved onboarding and redirected; navigating away
+  // earlier would race the pending request (and land back on /onboarding).
+  await expect(page).not.toHaveURL(/\/onboarding/);
 }
 
 export async function setLaunchMode(mode: "open" | "waitlist") {
