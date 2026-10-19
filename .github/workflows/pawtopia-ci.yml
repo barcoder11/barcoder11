@@ -1,0 +1,122 @@
+name: Pawtopia CI
+
+on:
+  push:
+    branches: [main, "claude/**"]
+    paths: ["pawtopia/**", ".github/workflows/pawtopia-ci.yml"]
+  pull_request:
+    paths: ["pawtopia/**", ".github/workflows/pawtopia-ci.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: pawtopia-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: pawtopia
+
+jobs:
+  checks:
+    name: Format, lint, types, unit tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: pawtopia/.nvmrc
+          cache: npm
+          cache-dependency-path: pawtopia/package-lock.json
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - name: Unused files, exports and dependencies
+        run: npm run knip
+      - name: supabase/setup.sql matches the migrations
+        run: npm run db:check
+      - name: Production dependencies have no high-severity advisories
+        run: npm audit --omit=dev --audit-level=high
+      - name: Build without Supabase configured
+        run: npm run build
+
+  integration:
+    name: Database and end-to-end tests (local Supabase)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      SUPABASE: npx --yes supabase@2.121.0
+      PAWTOPIA_DB_TESTS: "1"
+      PAWTOPIA_STORAGE_TESTS: "1"
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      SMTP_HOST: 127.0.0.1
+      SMTP_PORT: "54325"
+      EMAIL_FROM: Pawtopia <noreply@pawtopia.test>
+      ADMIN_EMAILS: owner-bootstrap@example.test
+      CRON_SECRET: ci-cron-secret
+      E2E_CRON_SECRET: ci-cron-secret
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: pawtopia/.nvmrc
+          cache: npm
+          cache-dependency-path: pawtopia/package-lock.json
+      - run: npm ci
+
+      - name: Start local Supabase (migrations + seed)
+        run: $SUPABASE start -x realtime,studio,edge-runtime,logflare,vector,supavisor,imgproxy,postgres-meta
+      - name: Point the app and tests at local Supabase
+        run: |
+          eval "$($SUPABASE status -o env | grep -E '^[A-Z0-9_]+=')"
+          for name in API_URL DB_URL JWT_SECRET ANON_KEY SERVICE_ROLE_KEY; do
+            if [ -z "${!name:-}" ]; then echo "::error::supabase status did not report $name"; exit 1; fi
+          done
+          {
+            echo "TEST_SUPABASE_URL=$API_URL"
+            echo "TEST_DATABASE_URL=$DB_URL"
+            echo "TEST_JWT_SECRET=$JWT_SECRET"
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+          } >> "$GITHUB_ENV"
+
+      - name: Database integration tests
+        run: npm run test:db
+
+      - name: Build the app against local Supabase
+        run: npm run build
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Start the app
+        run: |
+          nohup npm start > next.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf -o /dev/null http://localhost:3000/robots.txt && exit 0
+            sleep 1
+          done
+          cat next.log
+          exit 1
+      - name: End-to-end tests
+        run: npm run test:e2e
+
+      - name: Service logs
+        if: failure()
+        run: |
+          echo "::group::app"; tail -n 200 next.log || true; echo "::endgroup::"
+          for c in $(docker ps --format '{{.Names}}' | grep -E 'supabase_(auth|rest|storage|kong|db)_'); do
+            echo "::group::$c"; docker logs --tail 200 "$c" 2>&1 || true; echo "::endgroup::"
+          done
+      - name: Upload Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: pawtopia/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
