@@ -161,6 +161,9 @@ trips, so the code keeps them few and parallel:
   sanctuary + habitat, rescue + animal).
 - Work that doesn't change the page — return-visit tracking — runs after the response is
   sent (`after()`), so it never delays rendering.
+- **Uploaded art is resized per device** by Next's image optimizer (WebP at the width the
+  screen needs, cached 31 days since uploads never change in place): a 2048 px, 8 MB PNG
+  reaches a phone as 16–36 KB.
 - **Public catalog cache.** Anonymous visitors (nearly all traffic from the videos) see the
   same published content, so their catalog reads are shared across requests and keyed by
   `public.catalog_version`, a counter that database triggers bump whenever animals, art,

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { Animal, AnimalAsset, AssetState } from "@/lib/types";
 import { Critter, StateEffects, type PetState } from "./Critter";
 
@@ -57,14 +58,16 @@ export function AnimalArt({
           aria-label={asset.alt_text}
         />
       ) : (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        // Resized and re-encoded per device by Next's image optimizer.
+        <Image
           key={asset.id}
           src={asset.public_url}
           alt={asset.alt_text}
-          className="pet-asset h-full w-full object-contain drop-shadow-xl"
+          fill
+          sizes="(min-width: 1024px) 480px, 80vw"
+          className="pet-asset object-contain drop-shadow-xl"
           loading={priority ? "eager" : "lazy"}
-          decoding="async"
+          fetchPriority={priority ? "high" : "auto"}
         />
       )}
       {!hasStateArt && state !== "idle" && (
