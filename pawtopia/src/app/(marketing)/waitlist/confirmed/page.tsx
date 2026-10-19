@@ -12,6 +12,10 @@ const COPY: Record<string, { title: string; body: string }> = {
     title: "That link has expired",
     body: "No problem — just sign up again and we'll send a fresh confirmation link.",
   },
+  error: {
+    title: "Something went wrong on our side",
+    body: "Your link is probably fine. Please open it again in a few minutes.",
+  },
   invalid: {
     title: "That link didn't work",
     body: "It may have been used already. If you still need to confirm, sign up again for a new link.",

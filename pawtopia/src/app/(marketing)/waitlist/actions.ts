@@ -74,11 +74,21 @@ export async function joinWaitlist(_prev: WaitlistState, form: FormData): Promis
   };
 }
 
+/** Unsubscribes or deletes a waitlist entry. The page only ever confirms what actually happened. */
 export async function unsubscribeWaitlist(form: FormData) {
   const token = String(form.get("token") ?? "");
   const remove = form.get("delete") === "1";
+  if (token.length < 20 || token.length > 100) redirect("/waitlist/unsubscribe?done=invalid");
+  const retry = `/waitlist/unsubscribe?token=${encodeURIComponent(token)}&done=error`;
   const admin = createAdminClient();
-  if (!admin || token.length < 20 || token.length > 100) return;
-  await admin.rpc("waitlist_unsubscribe", { p_unsubscribe_hash: hashToken(token), p_delete: remove });
-  redirect(`/waitlist/unsubscribe?done=${remove ? "deleted" : "unsubscribed"}`);
+  if (!admin) redirect(retry);
+  const { data, error } = await admin.rpc("waitlist_unsubscribe", {
+    p_unsubscribe_hash: hashToken(token),
+    p_delete: remove,
+  });
+  if (error) {
+    log.error("waitlist_unsubscribe failed", { code: error.code });
+    redirect(retry);
+  }
+  redirect(`/waitlist/unsubscribe?done=${data.status}`);
 }

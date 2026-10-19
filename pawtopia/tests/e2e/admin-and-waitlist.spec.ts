@@ -105,6 +105,37 @@ test("waitlist mode: no premature play, verified email, neutral duplicates", asy
   await expect(page.getByTestId("confirm-adopt")).toHaveCount(0);
 });
 
+test("waitlist entries can be deleted, and a used or tampered link never claims success", async ({ page }) => {
+  await setLaunchMode("waitlist");
+  await page.goto("/r/maple-flood-rescue");
+  const email = newEmail("unsub");
+  await page.getByLabel("Get an invite when the sanctuary opens").fill(email);
+  await page.getByRole("button", { name: "Join waitlist" }).click();
+  await expect(page.getByText(/Check your inbox/)).toBeVisible();
+  const unsubscribe = extractLink(
+    await waitForMail(email, (m) => m.subject.includes("waitlist")),
+    "/waitlist/unsubscribe",
+  );
+
+  await page.goto(unsubscribe);
+  await page.getByRole("button", { name: "Delete my waitlist entry entirely" }).click();
+  await expect(page.getByRole("heading", { name: "Your email has been removed" })).toBeVisible();
+  const { rows } = await pool.query(
+    `select count(*)::int as n from public.waitlist_entries where normalized_email = $1`,
+    [email],
+  );
+  expect(rows[0].n).toBe(0);
+
+  // Using the link again must not report a deletion that didn't happen.
+  await page.goto(unsubscribe);
+  await page.getByRole("button", { name: "Delete my waitlist entry entirely" }).click();
+  await expect(page.getByRole("heading", { name: "That link didn't work" })).toBeVisible();
+
+  await page.goto("/waitlist/unsubscribe?token=tampered");
+  await page.getByRole("button", { name: "Unsubscribe from emails" }).click();
+  await expect(page.getByRole("heading", { name: "That link didn't work" })).toBeVisible();
+});
+
 test("admin adds a decoration to the shop and exports the confirmed waitlist", async ({ page }) => {
   await setLaunchMode("open");
   const adminEmail = newEmail("decor-admin");

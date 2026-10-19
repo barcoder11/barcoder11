@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { log } from "@/lib/log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hashToken } from "@/lib/tokens";
 
@@ -10,7 +11,8 @@ export async function GET(request: NextRequest) {
     target.searchParams.set("status", "invalid");
     return NextResponse.redirect(target);
   }
-  const { data } = await admin.rpc("waitlist_verify", { p_token_hash: hashToken(token) });
-  target.searchParams.set("status", (data?.status as string) ?? "invalid");
+  const { data, error } = await admin.rpc("waitlist_verify", { p_token_hash: hashToken(token) });
+  if (error) log.error("waitlist_verify failed", { code: error.code });
+  target.searchParams.set("status", error ? "error" : data.status);
   return NextResponse.redirect(target);
 }
