@@ -1,0 +1,272 @@
+@import "tailwindcss";
+
+@theme {
+  --color-forest: #2f6b58;
+  --color-forest-600: #275a4a;
+  --color-forest-700: #1f4a3d;
+  --color-sage: #ddede2;
+  --color-sage-200: #c9e1d1;
+  --color-cream: #fff8ec;
+  --color-cream-200: #f7ecd8;
+  --color-honey: #edbc78;
+  --color-honey-600: #d9a35b;
+  --color-terracotta: #a86548;
+  --color-ink: #183027;
+  --color-ink-soft: #3d5a4e;
+  --color-sky: #cfe8ef;
+  --color-berry: #7b4a8c;
+
+  --font-sans: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fredoka), var(--font-nunito), ui-rounded, system-ui, sans-serif;
+
+  --radius-blob: 2rem;
+  --shadow-soft: 0 10px 30px -12px rgb(24 48 39 / 0.35);
+  --shadow-pop: 0 6px 0 0 rgb(24 48 39 / 0.18);
+  --shadow-press: 0 2px 0 0 rgb(24 48 39 / 0.18);
+}
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Paper-like background texture */
+.bg-paper {
+  background-color: var(--color-cream);
+  background-image:
+    radial-gradient(circle at 20% 10%, rgb(221 237 226 / 0.9) 0, transparent 40%),
+    radial-gradient(circle at 85% 0%, rgb(237 188 120 / 0.25) 0, transparent 35%),
+    radial-gradient(circle at 50% 100%, rgb(221 237 226 / 0.7) 0, transparent 45%);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-honey);
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+
+/* ------------------------------------------------------------------ buttons */
+.btn-3d {
+  box-shadow: var(--shadow-pop);
+  transition: transform 120ms ease, box-shadow 120ms ease, background-color 150ms ease;
+}
+.btn-3d:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: var(--shadow-press);
+}
+
+/* ------------------------------------------------------------------ pet animations */
+.pet {
+  transform-origin: 50% 100%;
+}
+.pet-idle .pet-body-group {
+  animation: breathe 3.2s ease-in-out infinite;
+  transform-origin: 100px 180px;
+}
+.pet .pet-eyelid {
+  transform-box: fill-box;
+  transform-origin: 50% 0%;
+  transform: scaleY(0);
+  animation: blink 5s infinite;
+}
+.pet .pet-tail {
+  transform-box: fill-box;
+  transform-origin: 10% 90%;
+  animation: tail-sway 3.6s ease-in-out infinite;
+}
+.pet-happy .pet-body-group,
+.pet-comforted .pet-body-group {
+  animation: hop 0.9s ease-in-out 2;
+  transform-origin: 100px 180px;
+}
+.pet-playing .pet-body-group {
+  animation: wiggle 0.5s ease-in-out 4;
+  transform-origin: 100px 180px;
+}
+.pet-playing .pet-tail {
+  animation: tail-wag 0.3s ease-in-out infinite;
+}
+.pet-snacking .pet-head {
+  animation: chew 0.35s ease-in-out 6;
+  transform-box: fill-box;
+  transform-origin: 50% 80%;
+}
+.pet-resting .pet-body-group {
+  animation: breathe 4.8s ease-in-out infinite;
+  transform-origin: 100px 180px;
+}
+.pet-resting .pet-eyelid {
+  animation: none;
+  transform: scaleY(1);
+}
+.pet-head-look {
+  animation: look 7s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 90%;
+}
+
+.float-up {
+  animation: float-up 1.6s ease-out forwards;
+}
+.zzz {
+  animation: zzz 2.4s ease-in-out infinite;
+}
+.ball-bounce {
+  animation: ball-bounce 0.5s ease-in infinite alternate;
+}
+.sparkle {
+  animation: sparkle 2.2s ease-in-out infinite;
+}
+.firefly {
+  animation: firefly 6s ease-in-out infinite;
+}
+.sway {
+  animation: sway 6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+.glow-pulse {
+  animation: glow 2.8s ease-in-out infinite;
+}
+.pop-in {
+  animation: pop-in 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.slide-up {
+  animation: slide-up 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.reward-toast {
+  animation: reward 1.8s ease-out forwards;
+}
+.wobble-hover:hover {
+  animation: wobble 0.6s ease-in-out;
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1, 1); }
+  50% { transform: scale(1.015, 1.03); }
+}
+@keyframes blink {
+  0%, 92%, 100% { transform: scaleY(0); }
+  95% { transform: scaleY(1); }
+}
+@keyframes tail-sway {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-6deg); }
+}
+@keyframes tail-wag {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(10deg); }
+}
+@keyframes hop {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  20% { transform: translateY(0) scale(1.06, 0.92); }
+  50% { transform: translateY(-16px) scale(0.96, 1.05); }
+  80% { transform: translateY(0) scale(1.04, 0.95); }
+}
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg) translateY(-4px); }
+  75% { transform: rotate(5deg) translateY(-4px); }
+}
+@keyframes chew {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(2px) scaleY(0.98); }
+}
+@keyframes look {
+  0%, 40%, 100% { transform: rotate(0deg); }
+  50%, 60% { transform: rotate(-5deg); }
+  70%, 80% { transform: rotate(4deg); }
+}
+@keyframes float-up {
+  0% { opacity: 0; transform: translateY(10px) scale(0.6); }
+  20% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-70px) scale(1.1); }
+}
+@keyframes zzz {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.7); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translate(14px, -30px) scale(1.1); }
+}
+@keyframes ball-bounce {
+  from { transform: translateY(0); }
+  to { transform: translateY(-26px); }
+}
+@keyframes sparkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.7); }
+  50% { opacity: 1; transform: scale(1); }
+}
+@keyframes firefly {
+  0%, 100% { opacity: 0; transform: translate(0, 0); }
+  25% { opacity: 1; }
+  50% { opacity: 0.6; transform: translate(18px, -14px); }
+  75% { opacity: 1; transform: translate(-10px, -24px); }
+}
+@keyframes sway {
+  0%, 100% { transform: rotate(-1.2deg); }
+  50% { transform: rotate(1.2deg); }
+}
+@keyframes glow {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes reward {
+  0% { opacity: 0; transform: translate(-50%, 8px) scale(0.8); }
+  15% { opacity: 1; transform: translate(-50%, 0) scale(1.05); }
+  25% { transform: translate(-50%, 0) scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -40px); }
+}
+@keyframes wobble {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-4deg); }
+  75% { transform: rotate(4deg); }
+}
+
+/* Reduced motion: OS setting or the in-app preference (html.reduce-motion). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+/* Hide scrollbars on horizontal card rails while keeping them scrollable */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* In reduced motion, reward toasts stay visible (removed by a timer) instead of animating away,
+   and purely decorative floating effects are hidden. */
+@media (prefers-reduced-motion: reduce) {
+  .reward-toast { animation: none !important; transform: translate(-50%, 0); }
+  .float-up, .zzz, .firefly { display: none; }
+}
+html.reduce-motion .reward-toast { animation: none !important; transform: translate(-50%, 0); }
+html.reduce-motion .float-up,
+html.reduce-motion .zzz,
+html.reduce-motion .firefly { display: none; }

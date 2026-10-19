@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+  <body style="margin:0;background:#FFF8EC;font-family:Nunito,Arial,sans-serif;color:#183027">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px">
+      <tr><td align="center">
+        <table role="presentation" width="100%" style="max-width:480px;background:#ffffff;border-radius:24px;padding:32px;border:1px solid #DDEDE2">
+          <tr><td>
+            <p style="font-size:28px;margin:0 0 4px">🦝🌿</p>
+            <h1 style="font-size:22px;margin:0 0 12px;color:#2F6B58">Your Pawtopia sign-in</h1>
+            <p style="font-size:16px;line-height:1.5;margin:0 0 20px">Tap the button to enter your sanctuary. This link expires in 1 hour and can be used once.</p>
+            <p style="margin:0 0 24px"><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email" style="display:inline-block;background:#2F6B58;color:#ffffff;text-decoration:none;font-weight:700;padding:14px 24px;border-radius:999px">Enter Pawtopia</a></p>
+            <p style="font-size:15px;line-height:1.5;margin:0 0 8px">Opened this email on a different device or app? Type this code on the sign-in screen instead:</p>
+            <p style="font-size:30px;letter-spacing:8px;font-weight:800;margin:0 0 24px;color:#183027">{{ .Token }}</p>
+            <p style="font-size:12px;line-height:1.5;color:#5b6b63;margin:0">If you didn't request this, you can ignore this email. Pawtopia is a fictional virtual game; no real animals are adopted.</p>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>
