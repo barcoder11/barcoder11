@@ -24,7 +24,7 @@ Storage, RLS) · Vercel.
 
 ## Quick start (local)
 
-Requires Node 20.9+ and Docker (for the Supabase CLI).
+Requires Node 22 and Docker (for the Supabase CLI).
 
 ```bash
 cd pawtopia
@@ -32,6 +32,7 @@ npm install
 npx supabase start          # local Postgres/Auth/Storage + Mailpit (http://127.0.0.1:54324)
 npx supabase db reset       # applies supabase/migrations + supabase/seed.sql
 cp .env.example .env.local  # fill in values printed by `npx supabase status`
+                            # (local email: SMTP_HOST=127.0.0.1 SMTP_PORT=54325)
 npm run dev                 # http://localhost:3000
 ```
 
@@ -61,20 +62,27 @@ Roles can't be granted from inside the app — by design.
 | `SUPABASE_SERVICE_ROLE_KEY`                                  | **server only**  | Waitlist tokens, account deletion, admin script          |
 | `NEXT_PUBLIC_SITE_URL`                                       | both             | Canonical URL for emails and share links                 |
 | `ADMIN_EMAILS`                                               | server           | Comma-separated emails auto-promoted to admin on sign-in |
+| `CRON_SECRET`                                                | server           | Protects the daily data-retention job (Vercel Cron)      |
 | `SMTP_HOST` `SMTP_PORT` `SMTP_USER` `SMTP_PASS` `EMAIL_FROM` | server           | Waitlist confirmation emails (optional)                  |
 
 Without Supabase variables the app shows a setup screen instead of crashing.
 
 ## Scripts
 
-|                                      |                                                                |
-| ------------------------------------ | -------------------------------------------------------------- |
-| `npm run dev` / `build` / `start`    | Next.js                                                        |
-| `npm run lint` · `npm run typecheck` | ESLint · TypeScript                                            |
-| `npm test`                           | Unit tests                                                     |
-| `npm run test:db`                    | Database/RLS/economy integration tests (needs a running stack) |
-| `npm run test:e2e`                   | Playwright end-to-end tests (needs app + stack + mailbox)      |
-| `npm run admin:grant -- <email>`     | Grant admin/editor role                                        |
+|                                      |                                                                    |
+| ------------------------------------ | ------------------------------------------------------------------ |
+| `npm run dev` / `build` / `start`    | Next.js                                                            |
+| `npm run lint` · `npm run typecheck` | ESLint · TypeScript                                                |
+| `npm run format` · `format:check`    | Prettier (write · verify)                                          |
+| `npm run knip`                       | Finds unused files, exports and dependencies                       |
+| `npm test`                           | Unit tests                                                         |
+| `npm run test:db`                    | Database/RLS/economy integration tests (needs a running stack)     |
+| `npm run test:e2e`                   | Playwright end-to-end tests (needs app + stack)                    |
+| `npm run db:bundle` · `db:check`     | Regenerate · verify `supabase/setup.sql` after changing migrations |
+| `npm run admin:grant -- <email>`     | Grant admin/editor role                                            |
+
+Every push runs all checks and test suites in GitHub Actions
+(`.github/workflows/pawtopia-ci.yml`) against a fresh local Supabase stack.
 
 ## Adding a new animal (no code changes)
 

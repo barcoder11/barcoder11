@@ -2,7 +2,9 @@
 
 ## 1. Supabase project
 
-1. Create a project at supabase.com (pick a region near your players).
+1. Create a project at supabase.com (pick a region near your players). The easiest way
+   to wire it to Vercel is **Vercel → Project → Storage → Connect Database → Supabase**,
+   which creates the project and sets the Supabase environment variables for you.
 2. Apply the database — easiest: open **SQL Editor → New query**, paste the whole of
    `supabase/setup.sql` (all migrations + seed in one file) and click **Run**. Or with the CLI:
    ```bash
@@ -15,22 +17,49 @@
 3. **Auth → URL configuration**
    - Site URL: `https://your-domain.com`
    - Redirect URLs: `https://your-domain.com/**` (plus your `*.vercel.app` preview URL if wanted)
-4. **Auth → Email templates** — paste `supabase/templates/magic_link.html` into both
-   _Magic Link_ and _Confirm signup_. They include the token-hash link
-   (`/auth/confirm?...`) **and** the 6-digit code, which both work across browsers.
-   The default templates also work (PKCE link via `/auth/callback`) but fail when the
-   link opens in a different browser than the one that requested it.
+4. **Auth → Email templates** — paste `supabase/templates/magic_link.html` into _Magic
+   Link_ and `supabase/templates/confirmation.html` into _Confirm signup_. Both contain
+   the token-hash link (`/auth/confirm?...`) **and** the 6-digit code, which work across
+   browsers. The default templates also work (PKCE link via `/auth/callback`) but fail when
+   the link opens in a different browser than the one that requested it.
 5. **Auth → SMTP** — Supabase's built-in email is heavily rate-limited (a few per hour)
    and meant for testing. Before launch, configure custom SMTP (Resend, Postmark, SES…)
-   and set _Auth → Rate limits_ appropriately.
+   and set _Auth → Rate limits_ appropriately. Sign-in requests come from each player's
+   browser, so the limits apply per player IP, not to your whole site.
 6. Turn on MFA for your own Supabase dashboard account (admin protection).
+
+### Upgrading a database set up from an older `setup.sql`
+
+Run any migration in `supabase/migrations/` that your database doesn't have yet, in
+filename order, in the SQL editor (or `npx supabase db push`). The two added on
+2026-10-20 — `20261020000100_abuse_protection.sql` and `20261020000200_admin_tools.sql` —
+are safe to run more than once.
 
 ## 2. Vercel
 
 1. Import the GitHub repo in Vercel. **Root Directory: `pawtopia`**. Framework: Next.js.
-2. Environment variables (Production + Preview): see `.env.example`.
-   `SUPABASE_SERVICE_ROLE_KEY` must **not** be prefixed with `NEXT_PUBLIC_`.
+   Node.js 22 is selected automatically from `package.json` (`engines`).
+2. Environment variables (Production + Preview) — see `.env.example`:
+
+   | Variable                        | Required | Notes                                                            |
+   | ------------------------------- | -------- | ---------------------------------------------------------------- |
+   | `NEXT_PUBLIC_SUPABASE_URL`      | yes      | Set by the Vercel ↔ Supabase integration                         |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes      | Anon or publishable key                                          |
+   | `SUPABASE_SERVICE_ROLE_KEY`     | yes      | **Never** prefix with `NEXT_PUBLIC_`                             |
+   | `NEXT_PUBLIC_SITE_URL`          | yes      | `https://your-domain.com`, no trailing slash                     |
+   | `CRON_SECRET`                   | yes      | Long random string; protects the daily retention job (see below) |
+   | `ADMIN_EMAILS`                  | yes      | Your email; becomes admin on first sign-in                       |
+   | `SMTP_*`, `EMAIL_FROM`          | optional | Waitlist confirmation emails                                     |
+
 3. Deploy, then add your domain and update `NEXT_PUBLIC_SITE_URL` + Supabase Site URL.
+
+### Daily retention job
+
+`vercel.json` schedules `GET /api/cron/maintenance` daily at 04:17 UTC. Vercel sends
+`Authorization: Bearer $CRON_SECRET` automatically once `CRON_SECRET` is set; without it
+the route refuses every request. The job deletes stale rate-limit counters, unconfirmed
+waitlist sign-ups older than 30 days and anonymous analytics older than 180 days. Check
+**Vercel → Project → Cron Jobs** for its run history.
 
 ## 3. Waitlist email (optional)
 
@@ -52,8 +81,10 @@ production env in `.env.local`, or run the SQL in the README.
 - [ ] Test a full sign-up on a phone from inside the Instagram and TikTok apps.
 - [ ] Legal review of `/privacy` and `/terms` (currently marked DRAFT), age policy, and
       the "Pawtopia" name/trademark clearance.
-- [ ] Custom SMTP configured; send yourself a magic link and a waitlist email.
+- [ ] Custom SMTP configured; send yourself a sign-in code and a waitlist email.
+- [ ] `CRON_SECRET` set and the first maintenance run shows as successful.
 - [ ] Supabase backups enabled (Pro plan) and Vercel firewall/rate limiting reviewed.
+- [ ] Vercel deployment protection turned off for Production only when you're ready to go public.
 
 ## Releasing a new rescue animal
 
