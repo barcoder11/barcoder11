@@ -22,5 +22,6 @@ export async function clientKey(scope: string) {
   const ip = (h.get("x-real-ip") ?? h.get("x-forwarded-for")?.split(",")[0] ?? "unknown").trim();
   const secret = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY ?? "pawtopia-dev";
   const day = new Date().toISOString().slice(0, 10);
-  return `${scope}:${crypto.createHmac("sha256", secret).update(`${day}|${ip}`).digest("hex").slice(0, 32)}`;
+  // The scope is mixed into the HMAC (keys differ per feature); SQL adds its own bucket prefix.
+  return crypto.createHmac("sha256", secret).update(`${scope}|${day}|${ip}`).digest("hex").slice(0, 32);
 }

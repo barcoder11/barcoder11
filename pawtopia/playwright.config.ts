@@ -4,6 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
 // Supabase-compatible stack with a capturable mailbox (see tests/README.md).
 export default defineConfig({
   testDir: "tests/e2e",
+  globalSetup: "./tests/e2e/global-setup.ts",
   timeout: 60_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,

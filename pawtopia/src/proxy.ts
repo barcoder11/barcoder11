@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { env, isSupabaseConfigured } from "@/lib/env";
 import { ANON_COOKIE, FIRST_TOUCH_COOKIE, encodeFirstTouch, firstTouchFromUrl, isUuid } from "@/lib/attribution";
+import { buildCsp, createNonce } from "@/lib/csp";
 
 const PROTECTED = ["/app", "/admin", "/onboarding"];
 
@@ -9,9 +10,29 @@ function isProtected(pathname: string) {
   return PROTECTED.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
+/**
+ * Runs before every page request:
+ *   1. refreshes the Supabase session (getClaims) and verifies the JWT,
+ *   2. redirects signed-out visitors away from protected areas,
+ *   3. sets the pseudonymous visitor id and first-touch attribution cookies,
+ *   4. applies a per-request nonce-based Content-Security-Policy.
+ */
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
-  let response = NextResponse.next({ request });
+  const https = request.nextUrl.protocol === "https:";
+  const nonce = createNonce();
+  const csp = buildCsp({ nonce, supabaseUrl: env.supabaseUrl, dev: process.env.NODE_ENV === "development", https });
+
+  // Forward the request to the app with the nonce (Next.js stamps it on its scripts).
+  // Rebuilt after a token refresh so rendering sees the refreshed cookies.
+  const forward = () => {
+    const headers = new Headers(request.headers);
+    headers.set("x-nonce", nonce);
+    headers.set("content-security-policy", csp);
+    return NextResponse.next({ request: { headers } });
+  };
+
+  let response = forward();
   const pendingCookies: { name: string; value: string; options: Record<string, unknown> }[] = [];
   const pendingHeaders: Record<string, string> = {};
 
@@ -24,13 +45,12 @@ export async function proxy(request: NextRequest) {
         },
         setAll(cookiesToSet, headers) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
+          response = forward();
           cookiesToSet.forEach((c) => pendingCookies.push(c as (typeof pendingCookies)[number]));
           Object.assign(pendingHeaders, headers);
         },
       },
     });
-    // Refreshes the session if needed and verifies the JWT.
     const { data } = await supabase.auth.getClaims();
     userId = (data?.claims?.sub as string | undefined) ?? null;
   }
@@ -47,7 +67,7 @@ export async function proxy(request: NextRequest) {
     response.cookies.set(ANON_COOKIE, crypto.randomUUID(), {
       httpOnly: true,
       sameSite: "lax",
-      secure: request.nextUrl.protocol === "https:",
+      secure: https,
       maxAge: 60 * 60 * 24 * 180,
       path: "/",
     });
@@ -60,7 +80,7 @@ export async function proxy(request: NextRequest) {
       response.cookies.set(FIRST_TOUCH_COOKIE, encodeFirstTouch(touch), {
         httpOnly: true,
         sameSite: "lax",
-        secure: request.nextUrl.protocol === "https:",
+        secure: https,
         maxAge: 60 * 60 * 24 * 30,
         path: "/",
       });
@@ -69,6 +89,7 @@ export async function proxy(request: NextRequest) {
 
   for (const c of pendingCookies) response.cookies.set(c.name, c.value, c.options);
   for (const [k, v] of Object.entries(pendingHeaders)) response.headers.set(k, v);
+  response.headers.set("Content-Security-Policy", csp);
   // Personalised responses must never be shared by a CDN.
   if (userId || isProtected(pathname)) {
     response.headers.set("Cache-Control", "private, no-store");
@@ -77,5 +98,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api/|_next/static|_next/image|favicon.ico|icon.svg|apple-icon|app-icon/|manifest.webmanifest|.*opengraph-image|sitemap.xml|robots.txt|assets/|.*\\.(?:png|jpg|jpeg|gif|webp|svg|mp4|webm)$).*)"],
+  matcher: [
+    "/((?!api/|_next/static|_next/image|favicon.ico|icon.svg|apple-icon|app-icon/|manifest.webmanifest|.*opengraph-image|sitemap.xml|robots.txt|assets/|.*\\.(?:png|jpg|jpeg|gif|webp|svg|mp4|webm)$).*)",
+  ],
 };

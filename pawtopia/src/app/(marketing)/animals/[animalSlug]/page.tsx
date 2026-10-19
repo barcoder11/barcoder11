@@ -10,7 +10,8 @@ import { WaitlistForm } from "@/components/marketing/WaitlistForm";
 import { ButtonLink, FictionDisclosure, Notice, Pill } from "@/components/ui";
 import { getIsEditor } from "@/lib/auth";
 import { getMyAdoptionId } from "@/lib/data/player";
-import { assetMap, getAnimalBySlug, getChapterOutline, getLaunchSettings, listRescuesForAnimal } from "@/lib/data/catalog";
+import { getAnimalBySlug, getChapterOutline, getLaunchSettings, listRescuesForAnimal } from "@/lib/data/catalog";
+import { assetMap } from "@/lib/animals";
 
 const SCENE_FOR: Record<string, string> = { riverbank: "river", "frosty-cove": "snow" };
 

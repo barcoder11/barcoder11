@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AnimalArt } from "@/components/art/AnimalArt";
 import { ButtonLink, Card } from "@/components/ui";
-import { assetMap, getChapterOutline } from "@/lib/data/catalog";
+import { getChapterOutline } from "@/lib/data/catalog";
+import { assetMap } from "@/lib/animals";
 import { getUnlockedChapters, listAdoptions } from "@/lib/data/player";
 import { personalize, PHASES } from "@/lib/game";
 

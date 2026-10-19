@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_ECONOMY } from "@/lib/game";
 import { many, one } from "@/lib/data/db";
 import type {
-  Animal, AnimalAsset, AssetState, ChapterOutline, Decor, Economy, Habitat, LaunchSettings, RescueStory,
+  Animal, ChapterOutline, Decor, Economy, Habitat, LaunchSettings, RescueStory,
 } from "@/lib/types";
 
 // Public catalog reads. They run with the visitor's session, so RLS decides
@@ -92,16 +92,3 @@ export const getHabitat = cache(async (slug: string): Promise<Habitat | null> =>
   const supabase = await createClient();
   return one(await supabase.from("habitats").select("*").eq("slug", slug).maybeSingle(), "habitat") as Habitat | null;
 });
-
-/** Active assets keyed by state, so components can fall back to placeholder art per state. */
-export function assetMap(animal: Pick<Animal, "animal_assets">): Partial<Record<AssetState, AnimalAsset>> {
-  const map: Partial<Record<AssetState, AnimalAsset>> = {};
-  for (const a of animal.animal_assets ?? []) if (a.is_active) map[a.state] = a;
-  return map;
-}
-
-/** True for animals published within the last `days` days (drives the "New" badge). */
-export function isNewArrival(animal: Pick<Animal, "status" | "published_at">, days = 14, now = Date.now()) {
-  if (animal.status !== "published" || !animal.published_at) return false;
-  return now - new Date(animal.published_at).getTime() < days * 86_400_000;
-}

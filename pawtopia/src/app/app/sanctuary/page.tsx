@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { SanctuaryEditor } from "@/components/game/SanctuaryEditor";
-import { assetMap } from "@/lib/data/catalog";
+import { assetMap } from "@/lib/animals";
 import { getWallet, listAdoptions } from "@/lib/data/player";
 import { SyncBalance } from "@/components/game/GameState";
 import { getSceneData } from "@/lib/data/scene";

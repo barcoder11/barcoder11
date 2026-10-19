@@ -10,7 +10,8 @@ import { WaitlistForm } from "@/components/marketing/WaitlistForm";
 import { ButtonLink, FictionDisclosure, Notice, Pill } from "@/components/ui";
 import { getIsEditor } from "@/lib/auth";
 import { getMyAdoptionId } from "@/lib/data/player";
-import { assetMap, getChapterOutline, getLaunchSettings, getRescueBySlug } from "@/lib/data/catalog";
+import { getChapterOutline, getLaunchSettings, getRescueBySlug } from "@/lib/data/catalog";
+import { assetMap } from "@/lib/animals";
 
 export async function generateMetadata({ params }: PageProps<"/r/[rescueSlug]">): Promise<Metadata> {
   const { rescueSlug } = await params;

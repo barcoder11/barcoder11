@@ -76,3 +76,33 @@ describe("toCsv", () => {
     );
   });
 });
+
+describe("buildCsp", () => {
+  it("allows only this site, nonce'd scripts and the Supabase origin", async () => {
+    const { buildCsp } = await import("./csp");
+    const csp = buildCsp({ nonce: "abc", supabaseUrl: "https://xyz.supabase.co/", https: true });
+    expect(csp).toContain("script-src 'self' 'nonce-abc' 'strict-dynamic'");
+    expect(csp).not.toContain("unsafe-eval");
+    expect(csp).toContain("connect-src 'self' https://xyz.supabase.co");
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).toContain("object-src 'none'");
+    expect(csp.endsWith("upgrade-insecure-requests")).toBe(true);
+  });
+  it("adds unsafe-eval only in development and tolerates a missing Supabase URL", async () => {
+    const { buildCsp } = await import("./csp");
+    const csp = buildCsp({ nonce: "n", dev: true });
+    expect(csp).toContain("'unsafe-eval'");
+    expect(csp).toContain("connect-src 'self';");
+    expect(csp).not.toContain("upgrade-insecure-requests");
+  });
+});
+
+describe("isNewArrival", () => {
+  it("flags animals published in the last 14 days only", async () => {
+    const { isNewArrival } = await import("./animals");
+    const now = Date.parse("2026-10-20T00:00:00Z");
+    expect(isNewArrival({ status: "published", published_at: "2026-10-15T00:00:00Z" }, 14, now)).toBe(true);
+    expect(isNewArrival({ status: "published", published_at: "2026-09-01T00:00:00Z" }, 14, now)).toBe(false);
+    expect(isNewArrival({ status: "coming_soon", published_at: null }, 14, now)).toBe(false);
+  });
+});

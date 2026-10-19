@@ -1,7 +1,11 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { buttonClass, Logo } from "@/components/ui";
 
-export default function NotFound() {
+export default async function NotFound() {
+  // Render per request so Next.js can apply this request's CSP nonce to its scripts
+  // (a build-time 404 page would carry no nonce and its scripts would be blocked).
+  await connection();
   return (
     <main className="bg-paper flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
       <Logo />

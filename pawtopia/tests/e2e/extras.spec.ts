@@ -115,3 +115,41 @@ test("a quick second tap never swallows a pending chapter popup", async ({ page 
   await page.getByTestId("care-snack").click(); // before the first popup had a chance to open
   await expect(page.getByRole("dialog", { name: /Chapter 2: The First Sniff/ })).toBeVisible({ timeout: 8000 });
 });
+
+test("strict Content-Security-Policy: nonce'd scripts run, nothing is blocked", async ({ page, request }) => {
+  const violations: string[] = [];
+  page.on("console", (msg) => {
+    if (/Content Security Policy|Refused to (load|execute|apply|connect)/i.test(msg.text())) violations.push(msg.text());
+  });
+  const res = await request.get("/r/maple-flood-rescue");
+  const csp = res.headers()["content-security-policy"] ?? "";
+  expect(csp).toMatch(/script-src 'self' 'nonce-[A-Za-z0-9+/=]+' 'strict-dynamic'/);
+  expect(csp).toContain("frame-ancestors 'none'");
+
+  await setLaunchMode("open");
+  for (const path of ["/", "/r/maple-flood-rescue?utm_source=tiktok", "/animals/maple", "/waitlist", "/no-such-page"]) {
+    await page.goto(path);
+  }
+  await page.goto("/auth?next=/animals/maple/adopt");
+  await signInWithCode(page, newEmail("csp")); // browser → Supabase auth (connect-src)
+  await completeOnboarding(page);
+  await page.getByTestId("confirm-adopt").click();
+  await expect(page).toHaveURL(/\/app\/animals\//);
+  await page.getByTestId("care-play").click(); // hydrated client code + server action
+  await expect(page.getByTestId("acorn-balance")).toHaveAttribute("aria-label", "55 acorns");
+  for (const path of ["/app", "/app/sanctuary", "/app/shop", "/app/stories", "/app/profile"]) {
+    await page.goto(path);
+  }
+  expect(violations).toEqual([]);
+});
+
+test("sitemap lists published rescues; new arrivals get a badge", async ({ page, request }) => {
+  const sitemap = await (await request.get("/sitemap.xml")).text();
+  expect(sitemap).toContain("/r/maple-flood-rescue</loc>");
+  expect(sitemap).toContain("/animals/maple</loc>");
+  expect(sitemap).not.toContain("/animals/pebble</loc>"); // coming soon, not published
+  expect(await (await request.get("/robots.txt")).text()).toContain("Sitemap:");
+  await pool.query(`update public.animals set published_at = now() - interval '2 days' where slug = 'maple'`);
+  await page.goto("/");
+  await expect(page.getByTestId("new-badge").first()).toBeVisible();
+});

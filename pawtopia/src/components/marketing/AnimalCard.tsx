@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AnimalArt } from "@/components/art/AnimalArt";
 import { SceneBackdrop } from "@/components/art/SceneBackdrop";
-import { assetMap } from "@/lib/data/catalog";
+import { assetMap, isNewArrival } from "@/lib/animals";
 import type { Animal } from "@/lib/types";
 
 const SCENE_FOR: Record<string, string> = { riverbank: "river", "frosty-cove": "snow" };
@@ -21,6 +21,11 @@ export function AnimalCard({ animal, href }: { animal: Animal; href?: string }) 
         {comingSoon && (
           <span className="absolute left-3 top-3 rounded-full bg-ink/80 px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-cream">
             🔒 Coming soon
+          </span>
+        )}
+        {isNewArrival(animal) && (
+          <span className="absolute left-3 top-3 rounded-full bg-honey px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-ink" data-testid="new-badge">
+            ✨ New rescue
           </span>
         )}
       </div>

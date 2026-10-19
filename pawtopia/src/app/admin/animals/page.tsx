@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AnimalArt } from "@/components/art/AnimalArt";
 import { StatusBadge } from "@/components/admin/fields";
 import { ButtonLink, Card } from "@/components/ui";
-import { assetMap } from "@/lib/data/catalog";
+import { assetMap } from "@/lib/animals";
 import { createClient } from "@/lib/supabase/server";
 import type { Animal } from "@/lib/types";
 import { many } from "@/lib/data/db";

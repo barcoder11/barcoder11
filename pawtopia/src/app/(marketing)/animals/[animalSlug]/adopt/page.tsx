@@ -6,7 +6,8 @@ import { WaitlistForm } from "@/components/marketing/WaitlistForm";
 import { Card, FictionDisclosure, Notice } from "@/components/ui";
 import { getIsEditor, requirePlayer } from "@/lib/auth";
 import { getMyAdoptionId } from "@/lib/data/player";
-import { assetMap, getAnimalBySlug, getEconomy, getLaunchSettings } from "@/lib/data/catalog";
+import { getAnimalBySlug, getEconomy, getLaunchSettings } from "@/lib/data/catalog";
+import { assetMap } from "@/lib/animals";
 import { AdoptForm } from "./AdoptForm";
 
 export const metadata: Metadata = { title: "Adopt", robots: { index: false } };

@@ -10,7 +10,7 @@ import { ButtonLink, Card, Notice } from "@/components/ui";
 import {
   deleteAsset, deleteChapter, deleteDraftAnimal, saveChapter, setAnimalStatus, setAssetActive, updateAnimal,
 } from "../../actions";
-import { assetMap } from "@/lib/data/catalog";
+import { assetMap } from "@/lib/animals";
 import { PHASES } from "@/lib/game";
 import { createClient } from "@/lib/supabase/server";
 import type { Animal, AnimalAsset, Chapter, RescueStory } from "@/lib/types";

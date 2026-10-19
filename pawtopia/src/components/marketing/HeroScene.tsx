@@ -1,7 +1,7 @@
 import { AnimalArt, PlaceholderBadge } from "@/components/art/AnimalArt";
 import { DecorArt } from "@/components/art/DecorArt";
 import { SceneBackdrop } from "@/components/art/SceneBackdrop";
-import { assetMap } from "@/lib/data/catalog";
+import { assetMap } from "@/lib/animals";
 import type { Animal } from "@/lib/types";
 
 /** Decorative showcase of a sanctuary with the featured animal. */
