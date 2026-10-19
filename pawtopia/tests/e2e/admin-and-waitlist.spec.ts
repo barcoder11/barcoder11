@@ -96,3 +96,45 @@ test("waitlist mode: no premature play, verified email, neutral duplicates", asy
   await expect(page.getByText("Adoptions open soon")).toBeVisible();
   await expect(page.getByTestId("confirm-adopt")).toHaveCount(0);
 });
+
+test("admin adds a decoration to the shop and exports the confirmed waitlist", async ({ page }) => {
+  await setLaunchMode("open");
+  const adminEmail = newEmail("decor-admin");
+  await page.goto("/auth?next=/app");
+  await signInWithCode(page, adminEmail);
+  await completeOnboarding(page, "Curator");
+  await pool.query(
+    `insert into public.app_roles (user_id, role, granted_by) select id, 'admin', 'e2e' from auth.users where email = $1`, [adminEmail]);
+
+  // New shop item, no code changes.
+  const slug = `honey-pot-${Date.now().toString(36)}`;
+  await page.goto("/admin/decor");
+  const add = page.locator("form").filter({ has: page.getByRole("button", { name: "Add decoration" }) });
+  await add.getByLabel("Name").fill("Honey Pot");
+  await add.getByLabel("Slug (permanent)").fill(slug);
+  await add.getByLabel("Price (acorns)").fill("12");
+  await add.getByLabel("Description").fill("A tiny jar of golden honey.");
+  await add.getByRole("button", { name: "Add decoration" }).click();
+  await expect(page.getByText("Added Honey Pot to the shop.")).toBeVisible();
+  await page.goto("/app/shop");
+  await expect(page.getByTestId(`shop-${slug}`)).toContainText("Honey Pot");
+  await expect(page.getByRole("button", { name: "Buy Honey Pot for 12 acorns" })).toBeVisible();
+
+  // Waitlist page + CSV export (only confirmed sign-ups).
+  const confirmed = newEmail("csv-confirmed");
+  await pool.query(
+    `insert into public.waitlist_entries (email, normalized_email, status, verified_at) values ($1, $1, 'verified', now())`,
+    [confirmed],
+  );
+  await page.goto(`/admin/waitlist?q=${encodeURIComponent(confirmed.split("@")[0])}`);
+  await expect(page.getByRole("cell", { name: confirmed })).toBeVisible();
+  const csv = await page.request.get("/admin/export/waitlist");
+  expect(csv.status()).toBe(200);
+  expect(csv.headers()["content-type"]).toContain("text/csv");
+  const body = await csv.text();
+  expect(body.startsWith("email,opted_in_to_news,since\r\n")).toBe(true);
+  expect(body).toContain(confirmed);
+
+  // Hide the test item again so other tests see the standard shop.
+  await pool.query(`update public.decor_catalog set enabled = false where slug = $1`, [slug]);
+});

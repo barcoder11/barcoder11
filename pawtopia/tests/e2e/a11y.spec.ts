@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { completeOnboarding, newEmail, setLaunchMode, signInWithCode } from "./helpers";
+import { completeOnboarding, newEmail, pool, setLaunchMode, signInWithCode } from "./helpers";
 
 // Audit the settled page (entrance animations briefly lower opacity, which skews contrast checks).
 test.use({ contextOptions: { reducedMotion: "reduce" } });
@@ -33,6 +33,18 @@ test("game screens have no serious accessibility violations", async ({ page }) =
   await expect(page).toHaveURL(/\/app\/animals\//);
   await audit(page, "room");
   for (const path of ["/app", "/app/sanctuary", "/app/shop", "/app/stories", "/app/profile"]) {
+    await page.goto(path);
+    await audit(page, path);
+  }
+});
+
+test("admin screens have no serious accessibility violations", async ({ page }) => {
+  const email = newEmail("a11y-admin");
+  await page.goto("/auth?next=/app");
+  await signInWithCode(page, email);
+  await completeOnboarding(page, "Auditor");
+  await pool.query(`insert into public.app_roles (user_id, role, granted_by) select id, 'admin', 'e2e' from auth.users where email = $1`, [email]);
+  for (const path of ["/admin", "/admin/animals", "/admin/animals/new", "/admin/rescues", "/admin/decor", "/admin/waitlist", "/admin/analytics"]) {
     await page.goto(path);
     await audit(page, path);
   }

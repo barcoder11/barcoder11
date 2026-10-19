@@ -367,3 +367,39 @@ export async function updateEconomy(_prev: FormState, form: FormData): Promise<F
   revalidatePath("/admin");
   return error ? { error: error.message } : { ok: true, message: "Economy updated. New values apply to the next care action." };
 }
+
+// ------------------------------------------------------------------ decorations (admin only)
+const decorSchema = z.object({
+  slug,
+  name: z.string().trim().min(1).max(60),
+  description: optionalText(300),
+  price: z.coerce.number().int().min(0).max(100000),
+  slot_category: z.enum(["small", "large", "hanging"]),
+  art_key: z.enum(["blanket", "bowl", "flowers", "ball", "lantern", "bunting", "tree", "den", "pond", "generic"]),
+  sort_order: z.coerce.number().int().min(0).max(10000).default(100),
+  enabled: z.string().optional().transform((v) => v === "on"),
+});
+
+export async function saveDecor(id: string | null, _prev: FormState, form: FormData): Promise<FormState> {
+  if (!(await getIsAdmin())) return FORBIDDEN;
+  const parsed = decorSchema.safeParse(formObject(form));
+  if (!parsed.success) return { error: firstError(parsed.error) };
+  const supabase = await createClient();
+  const row = { ...parsed.data, habitat_tags: ["forest-glade", "riverbank", "frosty-cove"] };
+  const { error } = id
+    ? await supabase.from("decor_catalog").update(parsed.data).eq("id", id)
+    : await supabase.from("decor_catalog").insert(row);
+  if (error) return { error: error.code === "23505" ? "That slug is already taken." : error.message };
+  revalidatePath("/admin/decor");
+  return { ok: true, message: id ? "Saved." : `Added ${parsed.data.name} to the shop${parsed.data.enabled ? "" : " (hidden until enabled)"}.` };
+}
+
+// ------------------------------------------------------------------ waitlist (admin only)
+export async function deleteWaitlistEntry(id: string) {
+  if (!(await getIsAdmin())) return FORBIDDEN;
+  if (!z.string().uuid().safeParse(id).success) return { error: "Invalid entry." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_delete_waitlist_entry", { p_id: id });
+  revalidatePath("/admin/waitlist");
+  return error ? { error: error.message } : { ok: true };
+}

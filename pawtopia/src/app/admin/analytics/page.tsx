@@ -37,7 +37,7 @@ export default async function AdminAnalytics({ searchParams }: PageProps<"/admin
         player&apos;s first-touch rescue link.
       </p>
       {error && <p className="text-terracotta">Couldn&apos;t load analytics.</p>}
-      <Card className="overflow-x-auto p-0">
+      <Card className="overflow-x-auto p-0" tabIndex={0} role="region" aria-label="Funnel by episode and source">
         <table className="w-full min-w-[760px] text-left text-sm">
           <thead className="bg-sage text-xs uppercase tracking-wide text-forest-700">
             <tr>

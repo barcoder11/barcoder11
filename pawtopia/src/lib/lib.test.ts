@@ -67,3 +67,12 @@ describe("personalize", () => {
     expect(personalize("Mr.Pip naps. MrXPip naps.", "Mr.Pip", "Bo")).toBe("Bo naps. MrXPip naps.");
   });
 });
+
+describe("toCsv", () => {
+  it("quotes, escapes and neutralises formulas", async () => {
+    const { toCsv } = await import("./csv");
+    expect(toCsv(["email", "note"], [["a@b.co", 'say "hi", ok'], ["=HYPERLINK(1)", null], ["-1+2", "line\nbreak"]])).toBe(
+      'email,note\r\na@b.co,"say ""hi"", ok"\r\n\'=HYPERLINK(1),\r\n\'-1+2,"line\nbreak"\r\n',
+    );
+  });
+});

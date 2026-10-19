@@ -144,6 +144,55 @@ describe.skipIf(!dbTestsEnabled)("waitlist", () => {
   });
 });
 
+describe.skipIf(!dbTestsEnabled)("admin tools", () => {
+  it("exports only consenting contacts, admin-only, and audits every export", async () => {
+    const admin = await createUser({ admin: true });
+    const player = await createUser();
+    const fan = await createUser();
+    await fan.db.rpc("update_profile", { p_display_name: "Fan", p_timezone: "UTC", p_marketing_opt_in: true, p_reduced_motion: false });
+    const confirmed = `confirmed-${crypto.randomUUID().slice(0, 6)}@example.test`;
+    const pending = `pending-${crypto.randomUUID().slice(0, 6)}@example.test`;
+    await pool.query(
+      `insert into public.waitlist_entries (email, normalized_email, status, verified_at) values ($1, $1, 'verified', now()), ($2, $2, 'pending', null)`,
+      [confirmed, pending],
+    );
+
+    expect((await player.db.rpc("admin_export_contacts", { p_kind: "waitlist" })).error).not.toBeNull();
+
+    const { data: waitlist, error } = await admin.db.rpc("admin_export_contacts", { p_kind: "waitlist" });
+    expect(error).toBeNull();
+    const emails = (waitlist as { email: string }[]).map((r) => r.email);
+    expect(emails).toContain(confirmed);
+    expect(emails).not.toContain(pending);
+
+    const { data: players } = await admin.db.rpc("admin_export_contacts", { p_kind: "players" });
+    const playerEmails = (players as { email: string }[]).map((r) => r.email);
+    expect(playerEmails).toContain(fan.email);
+    expect(playerEmails).not.toContain(player.email);
+
+    const { rows } = await pool.query(
+      `select entity_id, diff from public.admin_audit_logs where admin_user_id = $1 and action = 'export' order by created_at`,
+      [admin.id],
+    );
+    expect(rows.map((r) => r.entity_id)).toEqual(["waitlist", "players"]);
+    expect(rows[0].diff.rows).toBe(emails.length);
+  });
+
+  it("only admins can delete waitlist entries or change decorations", async () => {
+    const admin = await createUser({ admin: true });
+    const player = await createUser();
+    const email = `del-${crypto.randomUUID().slice(0, 6)}@example.test`;
+    const { rows } = await pool.query(`insert into public.waitlist_entries (email, normalized_email) values ($1, $1) returning id`, [email]);
+    expect((await player.db.rpc("admin_delete_waitlist_entry", { p_id: rows[0].id })).error).not.toBeNull();
+    expect((await admin.db.rpc("admin_delete_waitlist_entry", { p_id: rows[0].id })).data.status).toBe("deleted");
+
+    const upd = await player.db.from("decor_catalog").update({ price: 0 }).eq("slug", "lily-pond").select();
+    expect(upd.data ?? []).toHaveLength(0);
+    const { data: pond } = await anonClient().from("decor_catalog").select("price").eq("slug", "lily-pond").single();
+    expect(pond!.price).toBe(80);
+  });
+});
+
 describe.skipIf(!dbTestsEnabled)("abuse protection and retention", () => {
   it("limits waitlist sign-ups per client", async () => {
     const svc = serviceClient();

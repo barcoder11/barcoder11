@@ -7,6 +7,8 @@ const ITEMS = [
   { href: "/admin/animals", label: "Animals" },
   { href: "/admin/rescues", label: "Rescues & links" },
   { href: "/admin/assets", label: "Assets" },
+  { href: "/admin/decor", label: "Decorations", adminOnly: true },
+  { href: "/admin/waitlist", label: "Waitlist", adminOnly: true },
   { href: "/admin/analytics", label: "Analytics", adminOnly: true },
 ];
 
