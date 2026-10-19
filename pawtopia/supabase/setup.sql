@@ -1,0 +1,1925 @@
+-- Pawtopia one-shot setup: all migrations + seed data.
+-- Paste into Supabase Dashboard → SQL Editor → New query → Run. Safe to run on a new project.
+-- Generated from supabase/migrations/*.sql and supabase/seed.sql.
+
+-- ===== 20261019000100_core_schema.sql =====
+-- Pawtopia core schema
+-- Canonical content (animals, rescue stories, chapters, decor, habitats) is shared;
+-- player state (adoptions, care, wallet, inventory, placements) is per user.
+-- All player-state writes happen through SECURITY DEFINER functions (see the
+-- game functions migration); clients can only read their own rows.
+
+create extension if not exists pgcrypto with schema extensions;
+
+-- ---------------------------------------------------------------------------
+-- Enums
+-- ---------------------------------------------------------------------------
+create type public.app_role as enum ('admin', 'editor');
+create type public.content_status as enum ('draft', 'coming_soon', 'published', 'archived');
+create type public.asset_state as enum (
+  'cover', 'avatar', 'idle', 'happy', 'comforted', 'snacking', 'playing', 'resting', 'poster', 'teaser'
+);
+create type public.media_kind as enum ('image', 'video');
+create type public.care_action_type as enum ('comfort', 'snack', 'play', 'rest');
+create type public.recovery_phase as enum (
+  'arrival', 'feeling_safe', 'learning_to_trust', 'thriving', 'new_beginning'
+);
+create type public.waitlist_status as enum ('pending', 'verified', 'unsubscribed');
+
+-- ---------------------------------------------------------------------------
+-- Helpers
+-- ---------------------------------------------------------------------------
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Accounts
+-- ---------------------------------------------------------------------------
+create table public.profiles (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  display_name text check (display_name is null or char_length(display_name) between 1 and 40),
+  timezone text not null default 'UTC' check (char_length(timezone) <= 64),
+  preferred_habitat text,
+  onboarding_completed_at timestamptz,
+  terms_accepted_at timestamptz,
+  terms_version text,
+  age_confirmed_at timestamptz,
+  marketing_opt_in boolean not null default false,
+  reduced_motion boolean not null default false,
+  first_touch jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table public.app_roles (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  role public.app_role not null,
+  granted_at timestamptz not null default now(),
+  granted_by text,
+  primary key (user_id, role)
+);
+
+create table public.waitlist_entries (
+  id uuid primary key default gen_random_uuid(),
+  email text not null check (char_length(email) <= 254),
+  normalized_email text not null unique check (normalized_email = lower(normalized_email)),
+  status public.waitlist_status not null default 'pending',
+  verify_token_hash text,
+  verify_token_expires_at timestamptz,
+  verified_at timestamptz,
+  unsubscribe_token_hash text,
+  unsubscribed_at timestamptz,
+  promotional_opt_in boolean not null default false,
+  source jsonb,
+  last_sent_at timestamptz,
+  send_count integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index waitlist_verify_token_idx on public.waitlist_entries (verify_token_hash);
+create index waitlist_unsub_token_idx on public.waitlist_entries (unsubscribe_token_hash);
+
+-- ---------------------------------------------------------------------------
+-- Catalog / content
+-- ---------------------------------------------------------------------------
+
+-- Scene manifests. Each habitat lists the decoration slots that exist in it so
+-- placements can be validated server-side. (Added beyond the PRD's table list
+-- so new species-appropriate scenes are data, not code.)
+create table public.habitats (
+  slug text primary key check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
+  name text not null,
+  description text,
+  scene_style text not null default 'forest',
+  background_path text,
+  slots jsonb not null default '[]'::jsonb check (jsonb_typeof(slots) = 'array'),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table public.animals (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and char_length(slug) <= 60),
+  name text not null check (char_length(name) between 1 and 40),
+  species text not null check (char_length(species) between 1 and 40),
+  placeholder_style text not null default 'generic'
+    check (placeholder_style in ('raccoon', 'otter', 'penguin', 'fox', 'squirrel', 'generic')),
+  habitat_slug text references public.habitats (slug) on update cascade,
+  tagline text check (tagline is null or char_length(tagline) <= 140),
+  bio text check (bio is null or char_length(bio) <= 2000),
+  personality_tags text[] not null default '{}',
+  appearance text check (appearance is null or char_length(appearance) <= 1000),
+  colors jsonb not null default '{}'::jsonb,
+  status public.content_status not null default 'draft',
+  featured boolean not null default false,
+  sort_order integer not null default 100,
+  release_at timestamptz,
+  published_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index animals_status_idx on public.animals (status, sort_order);
+
+create table public.animal_assets (
+  id uuid primary key default gen_random_uuid(),
+  animal_id uuid not null references public.animals (id) on delete cascade,
+  state public.asset_state not null,
+  media_kind public.media_kind not null,
+  storage_path text not null unique check (storage_path ~ '^animals/[a-z0-9-]+/[A-Za-z0-9._-]+$'),
+  public_url text not null check (public_url ~ '^https?://'),
+  mime_type text not null,
+  byte_size bigint check (byte_size is null or byte_size > 0),
+  width integer check (width is null or width > 0),
+  height integer check (height is null or height > 0),
+  alt_text text not null check (char_length(alt_text) between 3 and 300),
+  credits text check (credits is null or char_length(credits) <= 300),
+  source_notes text check (source_notes is null or char_length(source_notes) <= 1000),
+  is_active boolean not null default true,
+  created_by uuid references auth.users (id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+-- Only one active asset per animal + state.
+create unique index animal_assets_active_state_idx
+  on public.animal_assets (animal_id, state) where is_active;
+
+create table public.rescue_stories (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and char_length(slug) <= 80),
+  animal_id uuid not null references public.animals (id) on delete restrict,
+  title text not null check (char_length(title) between 3 and 120),
+  synopsis text check (synopsis is null or char_length(synopsis) <= 600),
+  story_body text check (story_body is null or char_length(story_body) <= 5000),
+  season integer check (season is null or season > 0),
+  episode integer check (episode is null or episode > 0),
+  instagram_url text check (instagram_url is null or instagram_url ~ '^https://'),
+  facebook_url text check (facebook_url is null or facebook_url ~ '^https://'),
+  tiktok_url text check (tiktok_url is null or tiktok_url ~ '^https://'),
+  youtube_url text check (youtube_url is null or youtube_url ~ '^https://'),
+  poster_asset_id uuid references public.animal_assets (id) on delete set null,
+  teaser_asset_id uuid references public.animal_assets (id) on delete set null,
+  status public.content_status not null default 'draft',
+  -- The fictional/AI disclosure is mandatory and cannot be switched off.
+  ai_fiction_disclosure boolean not null default true check (ai_fiction_disclosure),
+  published_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index rescue_stories_animal_idx on public.rescue_stories (animal_id);
+
+-- Recovery chapters. `unlock_bond_xp` is the unlock rule: a chapter unlocks
+-- when the adoption's bond XP reaches it.
+create table public.story_chapters (
+  id uuid primary key default gen_random_uuid(),
+  animal_id uuid not null references public.animals (id) on delete cascade,
+  ordinal integer not null check (ordinal between 1 and 20),
+  phase public.recovery_phase not null,
+  title text not null check (char_length(title) between 1 and 80),
+  body text not null check (char_length(body) <= 4000),
+  unlock_bond_xp integer not null default 0 check (unlock_bond_xp >= 0),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (animal_id, ordinal)
+);
+
+create table public.decor_catalog (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
+  name text not null check (char_length(name) between 1 and 60),
+  description text check (description is null or char_length(description) <= 300),
+  price integer not null check (price >= 0),
+  slot_category text not null check (slot_category in ('small', 'large', 'hanging')),
+  habitat_tags text[] not null default '{}',
+  art_key text not null default 'generic',
+  asset_path text,
+  enabled boolean not null default true,
+  sort_order integer not null default 100,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- ---------------------------------------------------------------------------
+-- Player state
+-- ---------------------------------------------------------------------------
+create table public.user_animals (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  animal_id uuid not null references public.animals (id) on delete restrict,
+  nickname text check (nickname is null or char_length(nickname) between 1 and 30),
+  phase public.recovery_phase not null default 'arrival',
+  bond_xp integer not null default 0 check (bond_xp >= 0),
+  level integer not null default 1 check (level >= 1),
+  current_chapter integer not null default 1,
+  care_count integer not null default 0 check (care_count >= 0),
+  adopted_at timestamptz not null default now(),
+  last_cared_at timestamptz,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, animal_id)
+);
+create index user_animals_animal_idx on public.user_animals (animal_id);
+
+create table public.care_actions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  user_animal_id uuid not null references public.user_animals (id) on delete cascade,
+  action_type public.care_action_type not null,
+  idempotency_key uuid not null,
+  local_date date not null,
+  awarded_xp integer not null default 0 check (awarded_xp >= 0),
+  rewarded_acorns integer not null default 0 check (rewarded_acorns >= 0),
+  performed_at timestamptz not null default now(),
+  unique (user_id, idempotency_key)
+);
+create index care_actions_animal_day_idx on public.care_actions (user_animal_id, local_date);
+create index care_actions_user_day_idx on public.care_actions (user_id, local_date);
+create index care_actions_cooldown_idx on public.care_actions (user_animal_id, action_type, performed_at desc);
+
+create table public.user_story_unlocks (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  user_animal_id uuid not null references public.user_animals (id) on delete cascade,
+  chapter_id uuid not null references public.story_chapters (id) on delete cascade,
+  unlocked_at timestamptz not null default now(),
+  unique (user_animal_id, chapter_id)
+);
+create index user_story_unlocks_user_idx on public.user_story_unlocks (user_id);
+
+create table public.sanctuaries (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  name text not null default 'My Sanctuary' check (char_length(name) between 1 and 40),
+  habitat_slug text not null default 'forest-glade' references public.habitats (slug) on update cascade,
+  layout_version integer not null default 1,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Cached acorn balance. The CHECK makes a negative balance impossible at the
+-- database level; every change is mirrored by a currency_ledger row in the
+-- same transaction. (Added beyond the PRD so concurrent purchases serialise on
+-- a single row lock instead of summing the ledger.)
+create table public.wallets (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  acorns integer not null default 0 check (acorns >= 0),
+  updated_at timestamptz not null default now()
+);
+
+create table public.currency_ledger (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  currency text not null default 'acorns' check (currency = 'acorns'),
+  delta integer not null check (delta <> 0),
+  balance_after integer not null check (balance_after >= 0),
+  source_type text not null,
+  source_id text,
+  idempotency_key text not null unique,
+  created_at timestamptz not null default now()
+);
+create index currency_ledger_user_idx on public.currency_ledger (user_id, created_at desc);
+
+create table public.user_inventory (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  decor_id uuid not null references public.decor_catalog (id) on delete cascade,
+  quantity integer not null default 1 check (quantity between 1 and 99),
+  source text not null default 'purchase',
+  acquired_at timestamptz not null default now(),
+  primary key (user_id, decor_id)
+);
+
+create table public.sanctuary_placements (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  habitat_slug text not null references public.habitats (slug) on update cascade,
+  slot_id text not null,
+  decor_id uuid not null references public.decor_catalog (id) on delete cascade,
+  placed_at timestamptz not null default now(),
+  unique (user_id, habitat_slug, slot_id),
+  unique (user_id, habitat_slug, decor_id)
+);
+
+-- ---------------------------------------------------------------------------
+-- Analytics, settings, audit
+-- ---------------------------------------------------------------------------
+create table public.attribution_events (
+  id uuid primary key default gen_random_uuid(),
+  event_type text not null check (event_type in (
+    'rescue_landing_viewed', 'animal_page_viewed', 'adoption_cta_clicked',
+    'waitlist_submitted', 'waitlist_verified', 'signup_started', 'signup_completed',
+    'onboarding_completed', 'animal_adopted', 'first_care_completed', 'care_completed',
+    'chapter_unlocked', 'decoration_purchased', 'decoration_equipped',
+    'return_visit_1d', 'return_visit_7d'
+  )),
+  user_id uuid references auth.users (id) on delete set null,
+  anonymous_id uuid,
+  rescue_id uuid references public.rescue_stories (id) on delete set null,
+  animal_id uuid references public.animals (id) on delete set null,
+  source text check (source is null or char_length(source) <= 64),
+  medium text check (medium is null or char_length(medium) <= 64),
+  campaign text check (campaign is null or char_length(campaign) <= 64),
+  content text check (content is null or char_length(content) <= 64),
+  properties jsonb not null default '{}'::jsonb,
+  dedupe_key text unique,
+  occurred_at timestamptz not null default now()
+);
+create index attribution_events_type_time_idx on public.attribution_events (event_type, occurred_at);
+create index attribution_events_rescue_idx on public.attribution_events (rescue_id, event_type);
+create index attribution_events_user_idx on public.attribution_events (user_id);
+create index attribution_events_anon_idx on public.attribution_events (anonymous_id);
+
+create table public.app_settings (
+  key text primary key check (key ~ '^[a-z_]+$'),
+  value jsonb not null,
+  updated_by uuid references auth.users (id) on delete set null,
+  updated_at timestamptz not null default now()
+);
+
+create table public.admin_audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  admin_user_id uuid,
+  action text not null,
+  entity_type text not null,
+  entity_id text,
+  diff jsonb,
+  created_at timestamptz not null default now()
+);
+create index admin_audit_logs_time_idx on public.admin_audit_logs (created_at desc);
+
+-- updated_at triggers
+do $$
+declare t text;
+begin
+  foreach t in array array[
+    'profiles', 'waitlist_entries', 'habitats', 'animals', 'animal_assets', 'rescue_stories',
+    'story_chapters', 'decor_catalog', 'user_animals', 'sanctuaries'
+  ] loop
+    execute format(
+      'create trigger set_updated_at before update on public.%I for each row execute function public.set_updated_at()', t
+    );
+  end loop;
+end;
+$$;
+
+-- Keep published_at in sync with status transitions.
+create or replace function public.stamp_published_at()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.status = 'published' and (tg_op = 'INSERT' or old.status is distinct from 'published') then
+    new.published_at = coalesce(new.published_at, now());
+  end if;
+  return new;
+end;
+$$;
+create trigger stamp_published_at before insert or update on public.animals
+  for each row execute function public.stamp_published_at();
+create trigger stamp_published_at before insert or update on public.rescue_stories
+  for each row execute function public.stamp_published_at();
+
+-- Create the per-user rows when an auth user is created.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  insert into public.profiles (user_id) values (new.id) on conflict do nothing;
+  insert into public.wallets (user_id) values (new.id) on conflict do nothing;
+  return new;
+end;
+$$;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+-- ===== 20261019000200_security.sql =====
+-- Row Level Security and role helpers.
+-- Principles:
+--   * Every table has RLS enabled. No table is writable by players directly.
+--   * Players can SELECT only their own rows.
+--   * Anonymous visitors can read the published catalog only.
+--   * Content tables are writable by admins/editors; settings & roles by admins only.
+--   * app_roles has no write policy at all: roles are granted with the SQL
+--     editor / service role (see README "Admin bootstrap").
+
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.app_roles r
+    where r.user_id = auth.uid() and r.role = 'admin'
+  );
+$$;
+
+create or replace function public.is_content_editor()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.app_roles r
+    where r.user_id = auth.uid() and r.role in ('admin', 'editor')
+  );
+$$;
+
+revoke all on function public.is_admin() from public;
+revoke all on function public.is_content_editor() from public;
+grant execute on function public.is_admin() to anon, authenticated, service_role;
+grant execute on function public.is_content_editor() to anon, authenticated, service_role;
+
+-- Internal trigger helpers must never be callable through the API.
+revoke all on function public.set_updated_at() from public, anon, authenticated;
+revoke all on function public.stamp_published_at() from public, anon, authenticated;
+revoke all on function public.handle_new_user() from public, anon, authenticated;
+
+-- Enable RLS everywhere.
+do $$
+declare t text;
+begin
+  foreach t in array array[
+    'profiles', 'app_roles', 'waitlist_entries', 'habitats', 'animals', 'animal_assets',
+    'rescue_stories', 'story_chapters', 'decor_catalog', 'user_animals', 'care_actions',
+    'user_story_unlocks', 'sanctuaries', 'wallets', 'currency_ledger', 'user_inventory',
+    'sanctuary_placements', 'attribution_events', 'app_settings', 'admin_audit_logs'
+  ] loop
+    execute format('alter table public.%I enable row level security', t);
+  end loop;
+end;
+$$;
+
+-- Defence in depth: players never write player-state tables directly, even if
+-- a permissive policy were added by mistake later.
+revoke insert, update, delete, truncate on
+  public.profiles, public.app_roles, public.waitlist_entries, public.user_animals,
+  public.care_actions, public.user_story_unlocks, public.sanctuaries, public.wallets,
+  public.currency_ledger, public.user_inventory, public.sanctuary_placements,
+  public.attribution_events, public.admin_audit_logs
+from anon, authenticated;
+revoke truncate on all tables in schema public from anon, authenticated;
+-- Anonymous visitors never write anything directly.
+revoke insert, update, delete on all tables in schema public from anon;
+
+-- ---------------------------------------------------------------- accounts
+create policy profiles_select_own on public.profiles
+  for select to authenticated using (user_id = auth.uid());
+
+create policy app_roles_select_own on public.app_roles
+  for select to authenticated using (user_id = auth.uid() or public.is_admin());
+
+create policy waitlist_admin_read on public.waitlist_entries
+  for select to authenticated using (public.is_admin());
+
+-- ---------------------------------------------------------------- catalog
+create policy habitats_read on public.habitats
+  for select to anon, authenticated using (true);
+create policy habitats_admin_write on public.habitats
+  for all to authenticated using (public.is_admin()) with check (public.is_admin());
+
+create policy animals_read on public.animals
+  for select to anon, authenticated using (
+    status in ('published', 'coming_soon')
+    or public.is_content_editor()
+    or (
+      status = 'archived'
+      and exists (
+        select 1 from public.user_animals ua
+        where ua.animal_id = animals.id and ua.user_id = auth.uid()
+      )
+    )
+  );
+create policy animals_editor_insert on public.animals
+  for insert to authenticated with check (public.is_content_editor());
+create policy animals_editor_update on public.animals
+  for update to authenticated using (public.is_content_editor()) with check (public.is_content_editor());
+create policy animals_editor_delete on public.animals
+  for delete to authenticated using (public.is_content_editor() and status = 'draft');
+
+create policy animal_assets_read on public.animal_assets
+  for select to anon, authenticated using (
+    public.is_content_editor()
+    or (is_active and exists (select 1 from public.animals a where a.id = animal_assets.animal_id))
+  );
+create policy animal_assets_editor_write on public.animal_assets
+  for all to authenticated using (public.is_content_editor()) with check (public.is_content_editor());
+
+create policy rescue_stories_read on public.rescue_stories
+  for select to anon, authenticated using (
+    status in ('published', 'archived') or public.is_content_editor()
+  );
+create policy rescue_stories_editor_insert on public.rescue_stories
+  for insert to authenticated with check (public.is_content_editor());
+create policy rescue_stories_editor_update on public.rescue_stories
+  for update to authenticated using (public.is_content_editor()) with check (public.is_content_editor());
+create policy rescue_stories_editor_delete on public.rescue_stories
+  for delete to authenticated using (public.is_content_editor() and status = 'draft');
+
+-- Chapter text is only readable once unlocked (titles are exposed through
+-- animal_chapter_outline()).
+create policy story_chapters_read on public.story_chapters
+  for select to authenticated using (
+    public.is_content_editor()
+    or exists (
+      select 1 from public.user_story_unlocks u
+      where u.chapter_id = story_chapters.id and u.user_id = auth.uid()
+    )
+  );
+create policy story_chapters_editor_write on public.story_chapters
+  for all to authenticated using (public.is_content_editor()) with check (public.is_content_editor());
+
+create policy decor_read on public.decor_catalog
+  for select to anon, authenticated using (enabled or public.is_content_editor());
+create policy decor_admin_write on public.decor_catalog
+  for all to authenticated using (public.is_admin()) with check (public.is_admin());
+
+-- ---------------------------------------------------------------- player state (read own)
+create policy user_animals_select_own on public.user_animals
+  for select to authenticated using (user_id = auth.uid());
+create policy care_actions_select_own on public.care_actions
+  for select to authenticated using (user_id = auth.uid());
+create policy user_story_unlocks_select_own on public.user_story_unlocks
+  for select to authenticated using (user_id = auth.uid());
+create policy sanctuaries_select_own on public.sanctuaries
+  for select to authenticated using (user_id = auth.uid());
+create policy wallets_select_own on public.wallets
+  for select to authenticated using (user_id = auth.uid());
+create policy currency_ledger_select_own on public.currency_ledger
+  for select to authenticated using (user_id = auth.uid());
+create policy user_inventory_select_own on public.user_inventory
+  for select to authenticated using (user_id = auth.uid());
+create policy sanctuary_placements_select_own on public.sanctuary_placements
+  for select to authenticated using (user_id = auth.uid());
+
+-- ---------------------------------------------------------------- analytics / settings / audit
+create policy attribution_admin_read on public.attribution_events
+  for select to authenticated using (public.is_admin());
+
+create policy app_settings_public_read on public.app_settings
+  for select to anon, authenticated using (key in ('launch', 'economy') or public.is_admin());
+create policy app_settings_admin_write on public.app_settings
+  for all to authenticated using (public.is_admin()) with check (public.is_admin());
+
+create policy audit_admin_read on public.admin_audit_logs
+  for select to authenticated using (public.is_admin());
+
+-- ---------------------------------------------------------------- audit trail for content changes
+create or replace function public.audit_content_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_id text;
+  v_diff jsonb;
+begin
+  if tg_op = 'DELETE' then
+    v_id := (to_jsonb(old) ->> case when tg_table_name in ('app_settings') then 'key'
+                                    when tg_table_name = 'habitats' then 'slug' else 'id' end);
+    v_diff := jsonb_build_object('old', to_jsonb(old));
+  else
+    v_id := (to_jsonb(new) ->> case when tg_table_name in ('app_settings') then 'key'
+                                    when tg_table_name = 'habitats' then 'slug' else 'id' end);
+    if tg_op = 'UPDATE' then
+      select jsonb_object_agg(n.key, n.value) into v_diff
+      from jsonb_each(to_jsonb(new)) n
+      where n.key not in ('updated_at') and (to_jsonb(old) -> n.key) is distinct from n.value;
+      if v_diff is null then
+        return new;
+      end if;
+      -- Keep the trail small: long text fields are recorded as "changed" only.
+      select jsonb_object_agg(k, case when length(v::text) > 300 then to_jsonb('(changed)'::text) else v end)
+        into v_diff from jsonb_each(v_diff) as e(k, v);
+    else
+      v_diff := jsonb_build_object('created', true);
+    end if;
+  end if;
+  insert into public.admin_audit_logs (admin_user_id, action, entity_type, entity_id, diff)
+  values (auth.uid(), lower(tg_op), tg_table_name, v_id, v_diff);
+  return coalesce(new, old);
+end;
+$$;
+revoke all on function public.audit_content_change() from public, anon, authenticated;
+
+do $$
+declare t text;
+begin
+  foreach t in array array[
+    'animals', 'animal_assets', 'rescue_stories', 'story_chapters', 'decor_catalog', 'habitats', 'app_settings'
+  ] loop
+    execute format(
+      'create trigger audit_content_change after insert or update or delete on public.%I
+         for each row execute function public.audit_content_change()', t
+    );
+  end loop;
+end;
+$$;
+
+-- ===== 20261019000300_game_functions.sql =====
+-- Trusted game operations. Every function:
+--   * derives the player from auth.uid() (never from arguments),
+--   * validates ownership, cooldowns, caps and balances inside one transaction,
+--   * is idempotent (unique keys + "replay" responses), and
+--   * reads reward amounts from app_settings.economy (never from the client).
+
+-- ===========================================================================
+-- Internal helpers (not callable through the API; see grants at the bottom)
+-- ===========================================================================
+
+create or replace function public._economy()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select jsonb_build_object(
+    'welcome_acorns', 50,
+    'actions', jsonb_build_object(
+      'comfort', jsonb_build_object('xp', 5, 'acorns', 5, 'cooldown_seconds', 20),
+      'snack',   jsonb_build_object('xp', 5, 'acorns', 5, 'cooldown_seconds', 30),
+      'play',    jsonb_build_object('xp', 8, 'acorns', 5, 'cooldown_seconds', 30),
+      'rest',    jsonb_build_object('xp', 3, 'acorns', 5, 'cooldown_seconds', 45)
+    ),
+    'daily_acorn_actions', 3,
+    'daily_xp_cap', 60,
+    'first_care_gift_decor', 'soft-blanket',
+    'level_thresholds', jsonb_build_array(0, 15, 40, 75, 120, 180, 250, 330, 420, 520)
+  ) || coalesce((select s.value from public.app_settings s where s.key = 'economy'), '{}'::jsonb);
+$$;
+
+create or replace function public._launch_open()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce((select s.value ->> 'mode' from public.app_settings s where s.key = 'launch'), 'waitlist') = 'open';
+$$;
+
+create or replace function public._require_user()
+returns uuid
+language plpgsql
+stable
+set search_path = ''
+as $$
+declare v uuid := auth.uid();
+begin
+  if v is null then
+    raise exception 'not_authenticated' using errcode = '28000';
+  end if;
+  return v;
+end;
+$$;
+
+create or replace function public._local_date(p_user uuid)
+returns date
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select (now() at time zone coalesce((select p.timezone from public.profiles p where p.user_id = p_user), 'UTC'))::date;
+$$;
+
+create or replace function public._valid_timezone(p_tz text)
+returns text
+language sql
+stable
+set search_path = ''
+as $$
+  select case
+    when p_tz is not null and exists (select 1 from pg_catalog.pg_timezone_names where name = p_tz) then p_tz
+    else 'UTC'
+  end;
+$$;
+
+create or replace function public._level_for(p_xp integer)
+returns integer
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select greatest(1, count(*)::integer)
+  from jsonb_array_elements_text(public._economy() -> 'level_thresholds') t
+  where t::integer <= p_xp;
+$$;
+
+create or replace function public._clean_token(p text)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select nullif(left(regexp_replace(lower(coalesce(p, '')), '[^a-z0-9_.-]', '', 'g'), 64), '');
+$$;
+
+-- Credits (or debits, with a negative delta) acorns exactly once per
+-- idempotency key. Returns the new balance, or NULL if the key was already used.
+create or replace function public._credit(
+  p_user uuid, p_delta integer, p_source_type text, p_source_id text, p_key text
+)
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare v_balance integer;
+begin
+  insert into public.wallets (user_id) values (p_user) on conflict do nothing;
+  perform 1 from public.wallets w where w.user_id = p_user for update;
+  if exists (select 1 from public.currency_ledger l where l.idempotency_key = p_key) then
+    return null;
+  end if;
+  update public.wallets w
+     set acorns = w.acorns + p_delta, updated_at = now()
+   where w.user_id = p_user and w.acorns + p_delta >= 0
+  returning w.acorns into v_balance;
+  if v_balance is null then
+    raise exception 'insufficient_funds' using errcode = 'P0001';
+  end if;
+  insert into public.currency_ledger (user_id, delta, balance_after, source_type, source_id, idempotency_key)
+  values (p_user, p_delta, v_balance, p_source_type, p_source_id, p_key);
+  return v_balance;
+end;
+$$;
+
+-- Records a server-side analytics event, attributing it to the player's
+-- first-touch rescue/campaign. Duplicate dedupe keys are ignored.
+create or replace function public._event(
+  p_type text, p_user uuid, p_animal uuid, p_props jsonb, p_dedupe text
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare ft jsonb;
+begin
+  select p.first_touch into ft from public.profiles p where p.user_id = p_user;
+  insert into public.attribution_events (
+    event_type, user_id, rescue_id, animal_id, source, medium, campaign, content, properties, dedupe_key
+  ) values (
+    p_type, p_user,
+    (select r.id from public.rescue_stories r where r.id = (ft ->> 'rescue_id')::uuid),
+    p_animal, ft ->> 'source', ft ->> 'medium', ft ->> 'campaign', ft ->> 'content',
+    coalesce(p_props, '{}'::jsonb), p_dedupe
+  )
+  on conflict (dedupe_key) do nothing;
+end;
+$$;
+
+-- Unlocks every chapter whose threshold is reached; returns newly unlocked chapters.
+create or replace function public._unlock_chapters(p_user_animal uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  ua public.user_animals;
+  v_new jsonb;
+  v_top record;
+begin
+  select * into ua from public.user_animals where id = p_user_animal;
+
+  with ins as (
+    insert into public.user_story_unlocks (user_id, user_animal_id, chapter_id)
+    select ua.user_id, ua.id, c.id
+      from public.story_chapters c
+     where c.animal_id = ua.animal_id and c.unlock_bond_xp <= ua.bond_xp
+    on conflict (user_animal_id, chapter_id) do nothing
+    returning chapter_id
+  )
+  select coalesce(jsonb_agg(jsonb_build_object('id', c.id, 'ordinal', c.ordinal, 'title', c.title, 'phase', c.phase)
+                            order by c.ordinal), '[]'::jsonb)
+    into v_new
+    from ins join public.story_chapters c on c.id = ins.chapter_id;
+
+  select c.ordinal, c.phase into v_top
+    from public.user_story_unlocks u join public.story_chapters c on c.id = u.chapter_id
+   where u.user_animal_id = ua.id
+   order by c.ordinal desc limit 1;
+
+  if v_top.ordinal is not null then
+    update public.user_animals
+       set current_chapter = v_top.ordinal, phase = v_top.phase
+     where id = ua.id and (current_chapter <> v_top.ordinal or phase <> v_top.phase);
+  end if;
+
+  if jsonb_array_length(v_new) > 0 then
+    insert into public.attribution_events (event_type, user_id, animal_id, properties, dedupe_key)
+    select 'chapter_unlocked', ua.user_id, ua.animal_id,
+           jsonb_build_object('ordinal', (x ->> 'ordinal')::int),
+           'chapter:' || ua.id || ':' || (x ->> 'id')
+      from jsonb_array_elements(v_new) x
+    on conflict (dedupe_key) do nothing;
+  end if;
+
+  return v_new;
+end;
+$$;
+
+create or replace function public._placements(p_user uuid, p_habitat text)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object('slot_id', sp.slot_id, 'decor_slug', d.slug) order by sp.slot_id), '[]'::jsonb)
+    from public.sanctuary_placements sp join public.decor_catalog d on d.id = sp.decor_id
+   where sp.user_id = p_user and sp.habitat_slug = p_habitat;
+$$;
+
+-- ===========================================================================
+-- Player API
+-- ===========================================================================
+
+create or replace function public.complete_onboarding(
+  p_display_name text,
+  p_timezone text,
+  p_preferred_habitat text,
+  p_accept_terms boolean,
+  p_confirm_age boolean,
+  p_terms_version text,
+  p_marketing_opt_in boolean default false
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := public._require_user();
+  v_was_done timestamptz;
+  v_name text := nullif(btrim(coalesce(p_display_name, '')), '');
+begin
+  if not coalesce(p_accept_terms, false) or not coalesce(p_confirm_age, false) then
+    return jsonb_build_object('status', 'terms_required');
+  end if;
+  if v_name is not null and char_length(v_name) > 40 then
+    return jsonb_build_object('status', 'invalid_name');
+  end if;
+
+  insert into public.profiles (user_id) values (uid) on conflict do nothing;
+  select onboarding_completed_at into v_was_done from public.profiles where user_id = uid for update;
+
+  update public.profiles set
+    display_name = coalesce(v_name, display_name),
+    timezone = public._valid_timezone(p_timezone),
+    preferred_habitat = left(public._clean_token(p_preferred_habitat), 40),
+    marketing_opt_in = coalesce(p_marketing_opt_in, false),
+    terms_accepted_at = coalesce(terms_accepted_at, now()),
+    terms_version = left(coalesce(p_terms_version, 'draft'), 20),
+    age_confirmed_at = coalesce(age_confirmed_at, now()),
+    onboarding_completed_at = coalesce(onboarding_completed_at, now())
+  where user_id = uid;
+
+  insert into public.wallets (user_id) values (uid) on conflict do nothing;
+  insert into public.sanctuaries (user_id) values (uid) on conflict do nothing;
+
+  perform public._event('onboarding_completed', uid, null, '{}'::jsonb, 'onboarding:' || uid);
+  return jsonb_build_object('status', 'ok', 'first_time', v_was_done is null);
+end;
+$$;
+
+create or replace function public.update_profile(
+  p_display_name text,
+  p_timezone text,
+  p_marketing_opt_in boolean,
+  p_reduced_motion boolean
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := public._require_user();
+  v_name text := nullif(btrim(coalesce(p_display_name, '')), '');
+begin
+  if v_name is not null and char_length(v_name) > 40 then
+    return jsonb_build_object('status', 'invalid_name');
+  end if;
+  update public.profiles set
+    display_name = v_name,
+    timezone = public._valid_timezone(p_timezone),
+    marketing_opt_in = coalesce(p_marketing_opt_in, false),
+    reduced_motion = coalesce(p_reduced_motion, false)
+  where user_id = uid;
+  return jsonb_build_object('status', 'ok');
+end;
+$$;
+
+create or replace function public.adopt_animal(p_animal_slug text, p_nickname text default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := public._require_user();
+  cfg jsonb := public._economy();
+  v_profile public.profiles;
+  v_animal public.animals;
+  v_ua uuid;
+  v_nick text := nullif(btrim(coalesce(p_nickname, '')), '');
+  v_welcome integer := coalesce((cfg ->> 'welcome_acorns')::int, 0);
+  v_balance integer;
+  v_unlocked jsonb;
+begin
+  select * into v_profile from public.profiles where user_id = uid;
+  if v_profile.onboarding_completed_at is null then
+    return jsonb_build_object('status', 'onboarding_required');
+  end if;
+  if not public._launch_open() and not public.is_content_editor() then
+    return jsonb_build_object('status', 'closed');
+  end if;
+
+  select * into v_animal from public.animals a
+   where a.slug = p_animal_slug
+     and (a.status = 'published' or (public.is_content_editor() and a.status in ('draft', 'coming_soon')));
+  if not found then
+    return jsonb_build_object('status', 'not_available');
+  end if;
+  if v_nick is not null and char_length(v_nick) > 30 then
+    return jsonb_build_object('status', 'invalid_nickname');
+  end if;
+
+  insert into public.user_animals (user_id, animal_id, nickname)
+  values (uid, v_animal.id, v_nick)
+  on conflict (user_id, animal_id) do nothing
+  returning id into v_ua;
+
+  if v_ua is null then
+    select id into v_ua from public.user_animals where user_id = uid and animal_id = v_animal.id;
+    return jsonb_build_object('status', 'already_adopted', 'user_animal_id', v_ua);
+  end if;
+
+  insert into public.sanctuaries (user_id, habitat_slug)
+  values (uid, coalesce(v_animal.habitat_slug, 'forest-glade'))
+  on conflict do nothing;
+
+  v_balance := case when v_welcome > 0
+    then public._credit(uid, v_welcome, 'welcome_gift', v_ua::text, 'welcome:' || uid)
+    else null end;
+  v_unlocked := public._unlock_chapters(v_ua);
+
+  perform public._event('animal_adopted', uid, v_animal.id,
+    jsonb_build_object('animal_slug', v_animal.slug, 'first_adoption', v_balance is not null),
+    'adopt:' || v_ua);
+
+  return jsonb_build_object(
+    'status', 'adopted',
+    'user_animal_id', v_ua,
+    'welcome_acorns', case when v_balance is not null then v_welcome else 0 end,
+    'balance', (select acorns from public.wallets where user_id = uid),
+    'unlocked_chapters', v_unlocked
+  );
+end;
+$$;
+
+create or replace function public.rename_adoption(p_user_animal_id uuid, p_nickname text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := public._require_user();
+  v_nick text := nullif(btrim(coalesce(p_nickname, '')), '');
+begin
+  if v_nick is not null and char_length(v_nick) > 30 then
+    return jsonb_build_object('status', 'invalid_nickname');
+  end if;
+  update public.user_animals set nickname = v_nick where id = p_user_animal_id and user_id = uid;
+  if not found then
+    return jsonb_build_object('status', 'not_found');
+  end if;
+  return jsonb_build_object('status', 'ok', 'nickname', v_nick);
+end;
+$$;
+
+create or replace function public.perform_care(
+  p_user_animal_id uuid,
+  p_action public.care_action_type,
+  p_idempotency_key uuid
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := public._require_user();
+  cfg jsonb := public._economy();
+  act jsonb := cfg -> 'actions' -> p_action::text;
+  ua public.user_animals;
+  v_existing public.care_actions;
+  v_date date;
+  v_last timestamptz;
+  v_cooldown integer := coalesce((act ->> 'cooldown_seconds')::int, 30);
+  v_today_xp integer;
+  v_rewarded_types integer;
+  v_type_rewarded boolean;
+  v_xp integer;
+  v_acorns integer;
+  v_care_id uuid;
+  v_balance integer;
+  v_unlocked jsonb := '[]'::jsonb;
+  v_first_care boolean := false;
+  v_gift jsonb;
+  v_gift_decor public.decor_catalog;
+begin
+  if act is null then
+    return jsonb_build_object('status', 'invalid_action');
+  end if;
+  if p_idempotency_key is null then
+    return jsonb_build_object('status', 'invalid_request');
+  end if;
+
+  -- Lock the adoption row: serialises all care for this animal.
+  select * into ua from public.user_animals where id = p_user_animal_id and user_id = uid for update;
+  if not found then
+    return jsonb_build_object('status', 'not_found');
+  end if;
+
+  -- Replay of an already-processed request: no new rewards.
+  select * into v_existing from public.care_actions where user_id = uid and idempotency_key = p_idempotency_key;
+  if found then
+    return jsonb_build_object(
+      'status', 'replay',
+      'action', v_existing.action_type,
+      'xp_awarded', v_existing.awarded_xp,
+      'acorns_awarded', v_existing.rewarded_acorns,
+      'bond_xp', ua.bond_xp, 'level', ua.level, 'phase', ua.phase,
+      'balance', (select acorns from public.wallets where user_id = uid),
+      'unlocked_chapters', '[]'::jsonb
+    );
+  end if;
+
+  select performed_at into v_last from public.care_actions
+   where user_animal_id = ua.id and action_type = p_action
+   order by performed_at desc limit 1;
+  if v_last is not null and now() - v_last < make_interval(secs => v_cooldown) then
+    return jsonb_build_object(
+      'status', 'cooldown',
+      'action', p_action,
+      'retry_after_seconds', ceil(extract(epoch from (v_last + make_interval(secs => v_cooldown) - now())))::int
+    );
+  end if;
+
+  v_date := public._local_date(uid);
+
+  select coalesce(sum(awarded_xp), 0) into v_today_xp
+    from public.care_actions where user_animal_id = ua.id and local_date = v_date;
+  v_xp := least(coalesce((act ->> 'xp')::int, 0), greatest(0, coalesce((cfg ->> 'daily_xp_cap')::int, 0) - v_today_xp));
+
+  -- Wallet lock serialises acorn caps across this player's animals.
+  insert into public.wallets (user_id) values (uid) on conflict do nothing;
+  perform 1 from public.wallets where user_id = uid for update;
+
+  select count(distinct action_type),
+         coalesce(bool_or(action_type = p_action), false)
+    into v_rewarded_types, v_type_rewarded
+    from public.care_actions
+   where user_id = uid and local_date = v_date and rewarded_acorns > 0;
+  v_acorns := case
+    when not v_type_rewarded and v_rewarded_types < coalesce((cfg ->> 'daily_acorn_actions')::int, 0)
+      then coalesce((act ->> 'acorns')::int, 0)
+    else 0 end;
+
+  v_first_care := not exists (select 1 from public.care_actions where user_id = uid);
+
+  insert into public.care_actions (user_id, user_animal_id, action_type, idempotency_key, local_date, awarded_xp, rewarded_acorns)
+  values (uid, ua.id, p_action, p_idempotency_key, v_date, v_xp, v_acorns)
+  returning id into v_care_id;
+
+  update public.user_animals set
+    bond_xp = bond_xp + v_xp,
+    level = public._level_for(bond_xp + v_xp),
+    care_count = care_count + 1,
+    last_cared_at = now()
+  where id = ua.id
+  returning * into ua;
+
+  if v_acorns > 0 then
+    v_balance := public._credit(uid, v_acorns, 'care', v_care_id::text, 'care:' || v_care_id);
+  end if;
+  if v_xp > 0 then
+    v_unlocked := public._unlock_chapters(ua.id);
+    select * into ua from public.user_animals where id = ua.id;
+  end if;
+
+  perform public._event('care_completed', uid, ua.animal_id, jsonb_build_object('action_type', p_action), null);
+  if v_first_care then
+    perform public._event('first_care_completed', uid, ua.animal_id,
+      jsonb_build_object('action_type', p_action,
+                         'minutes_since_adoption', floor(extract(epoch from (now() - ua.adopted_at)) / 60)),
+      'first_care:' || uid);
+  end if;
+
+  -- First-care tutorial gift: once comfort, snack and play have all been done.
+  if (select count(distinct action_type) from public.care_actions
+       where user_id = uid and action_type in ('comfort', 'snack', 'play')) = 3 then
+    select * into v_gift_decor from public.decor_catalog where slug = cfg ->> 'first_care_gift_decor';
+    if found then
+      insert into public.user_inventory (user_id, decor_id, source)
+      values (uid, v_gift_decor.id, 'first_care_gift')
+      on conflict do nothing;
+      if found then
+        v_gift := jsonb_build_object('slug', v_gift_decor.slug, 'name', v_gift_decor.name);
+      end if;
+    end if;
+  end if;
+
+  return jsonb_build_object(
+    'status', 'ok',
+    'action', p_action,
+    'xp_awarded', v_xp,
+    'acorns_awarded', v_acorns,
+    'bond_xp', ua.bond_xp,
+    'level', ua.level,
+    'phase', ua.phase,
+    'balance', (select acorns from public.wallets where user_id = uid),
+    'daily_xp_remaining', greatest(0, coalesce((cfg ->> 'daily_xp_cap')::int, 0) - v_today_xp - v_xp),
+    'unlocked_chapters', v_unlocked,
+    'first_care', v_first_care,
+    'gift', v_gift
+  );
+end;
+$$;
+
+create or replace function public.purchase_decor(p_decor_slug text, p_idempotency_key uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := public._require_user();
+  v_key text;
+  v_balance integer;
+  v_decor public.decor_catalog;
+begin
+  if p_idempotency_key is null then
+    return jsonb_build_object('status', 'invalid_request');
+  end if;
+  v_key := 'purchase:' || uid || ':' || p_idempotency_key;
+
+  insert into public.wallets (user_id) values (uid) on conflict do nothing;
+  select acorns into v_balance from public.wallets where user_id = uid for update;
+
+  if exists (select 1 from public.currency_ledger where idempotency_key = v_key) then
+    return jsonb_build_object('status', 'replay', 'balance', v_balance);
+  end if;
+
+  select * into v_decor from public.decor_catalog where slug = p_decor_slug and enabled;
+  if not found then
+    return jsonb_build_object('status', 'not_available', 'balance', v_balance);
+  end if;
+  if exists (select 1 from public.user_inventory where user_id = uid and decor_id = v_decor.id) then
+    return jsonb_build_object('status', 'already_owned', 'balance', v_balance);
+  end if;
+  if v_balance < v_decor.price then
+    return jsonb_build_object('status', 'insufficient_funds', 'balance', v_balance, 'price', v_decor.price);
+  end if;
+
+  if v_decor.price > 0 then
+    v_balance := public._credit(uid, -v_decor.price, 'purchase', v_decor.id::text, v_key);
+  end if;
+  insert into public.user_inventory (user_id, decor_id, source) values (uid, v_decor.id, 'purchase');
+
+  perform public._event('decoration_purchased', uid, null,
+    jsonb_build_object('decor_slug', v_decor.slug, 'price', v_decor.price), 'purchase:' || uid || ':' || v_decor.id);
+
+  return jsonb_build_object('status', 'purchased', 'balance', v_balance, 'decor_slug', v_decor.slug);
+end;
+$$;
+
+create or replace function public.place_decor(p_slot_id text, p_decor_slug text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := public._require_user();
+  v_habitat text;
+  v_slot jsonb;
+  v_decor public.decor_catalog;
+begin
+  insert into public.sanctuaries (user_id) values (uid) on conflict do nothing;
+  select habitat_slug into v_habitat from public.sanctuaries where user_id = uid for update;
+
+  select s into v_slot
+    from public.habitats h, jsonb_array_elements(h.slots) s
+   where h.slug = v_habitat and s ->> 'id' = p_slot_id;
+  if v_slot is null then
+    return jsonb_build_object('status', 'invalid_slot');
+  end if;
+
+  select d.* into v_decor
+    from public.decor_catalog d join public.user_inventory i on i.decor_id = d.id and i.user_id = uid
+   where d.slug = p_decor_slug;
+  if not found then
+    return jsonb_build_object('status', 'not_owned');
+  end if;
+  if v_decor.slot_category <> v_slot ->> 'category' then
+    return jsonb_build_object('status', 'wrong_slot', 'expected', v_slot ->> 'category');
+  end if;
+
+  delete from public.sanctuary_placements
+   where user_id = uid and habitat_slug = v_habitat and (decor_id = v_decor.id or slot_id = p_slot_id);
+  insert into public.sanctuary_placements (user_id, habitat_slug, slot_id, decor_id)
+  values (uid, v_habitat, p_slot_id, v_decor.id);
+
+  perform public._event('decoration_equipped', uid, null,
+    jsonb_build_object('decor_slug', v_decor.slug), 'equip:' || uid || ':' || v_decor.id);
+
+  return jsonb_build_object('status', 'placed', 'placements', public._placements(uid, v_habitat));
+end;
+$$;
+
+create or replace function public.remove_decor(p_slot_id text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := public._require_user();
+  v_habitat text;
+begin
+  select habitat_slug into v_habitat from public.sanctuaries where user_id = uid for update;
+  if v_habitat is null then
+    return jsonb_build_object('status', 'not_found');
+  end if;
+  delete from public.sanctuary_placements where user_id = uid and habitat_slug = v_habitat and slot_id = p_slot_id;
+  return jsonb_build_object('status', 'removed', 'placements', public._placements(uid, v_habitat));
+end;
+$$;
+
+create or replace function public.rename_sanctuary(p_name text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := public._require_user();
+  v_name text := nullif(btrim(coalesce(p_name, '')), '');
+begin
+  if v_name is null or char_length(v_name) > 40 then
+    return jsonb_build_object('status', 'invalid_name');
+  end if;
+  insert into public.sanctuaries (user_id, name) values (uid, v_name)
+  on conflict (user_id) do update set name = excluded.name;
+  return jsonb_build_object('status', 'ok');
+end;
+$$;
+
+-- Public chapter outline (titles and unlock thresholds, never the body text).
+create or replace function public.animal_chapter_outline(p_animal_id uuid)
+returns table (ordinal integer, phase public.recovery_phase, title text, unlock_bond_xp integer)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select c.ordinal, c.phase, c.title, c.unlock_bond_xp
+    from public.story_chapters c join public.animals a on a.id = c.animal_id
+   where c.animal_id = p_animal_id
+     and (a.status in ('published', 'coming_soon', 'archived') or public.is_content_editor())
+   order by c.ordinal;
+$$;
+
+-- Server-side return-visit tracking (D1 / D7 relative to first adoption, in
+-- the player's own timezone). Called by the app shell on each visit.
+create or replace function public.touch_activity()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := public._require_user();
+  v_tz text;
+  v_first timestamptz;
+  v_days integer;
+begin
+  select coalesce(timezone, 'UTC') into v_tz from public.profiles where user_id = uid;
+  select min(adopted_at) into v_first from public.user_animals where user_id = uid;
+  if v_first is null then
+    return;
+  end if;
+  v_days := (now() at time zone v_tz)::date - (v_first at time zone v_tz)::date;
+  if v_days = 1 then
+    perform public._event('return_visit_1d', uid, null, '{}'::jsonb, 'd1:' || uid);
+  elsif v_days between 7 and 13 then
+    perform public._event('return_visit_7d', uid, null, jsonb_build_object('day', v_days), 'd7:' || uid);
+  end if;
+end;
+$$;
+
+-- Client-reported funnel events (landing views, CTA clicks). Everything else
+-- is recorded server-side inside the functions above.
+create or replace function public.track_event(
+  p_event_type text,
+  p_anonymous_id uuid,
+  p_rescue_slug text default null,
+  p_animal_slug text default null,
+  p_attribution jsonb default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := auth.uid();
+  v_rescue public.rescue_stories;
+  v_animal_id uuid;
+  v_actor text := coalesce(auth.uid()::text, p_anonymous_id::text);
+begin
+  if p_event_type not in ('rescue_landing_viewed', 'animal_page_viewed', 'adoption_cta_clicked', 'signup_started') then
+    raise exception 'event_not_allowed' using errcode = '22023';
+  end if;
+  if v_actor is null then
+    return;
+  end if;
+
+  select * into v_rescue from public.rescue_stories
+   where slug = p_rescue_slug and status in ('published', 'archived');
+  select id into v_animal_id from public.animals
+   where slug = p_animal_slug and status in ('published', 'coming_soon', 'archived');
+
+  insert into public.attribution_events (
+    event_type, user_id, anonymous_id, rescue_id, animal_id, source, medium, campaign, content, dedupe_key
+  ) values (
+    p_event_type, uid, p_anonymous_id, v_rescue.id, coalesce(v_animal_id, v_rescue.animal_id),
+    public._clean_token(p_attribution ->> 'source'),
+    public._clean_token(p_attribution ->> 'medium'),
+    public._clean_token(p_attribution ->> 'campaign'),
+    public._clean_token(p_attribution ->> 'content'),
+    -- One of each event per visitor, per page, per day.
+    p_event_type || ':' || v_actor || ':' || coalesce(v_rescue.id::text, v_animal_id::text, '-') || ':' || current_date
+  )
+  on conflict (dedupe_key) do nothing;
+end;
+$$;
+
+-- Called right after a verified sign-in: stores first-touch attribution once,
+-- links the visitor's anonymous funnel events, and records signup_completed.
+create or replace function public.record_signup(p_anonymous_id uuid, p_first_touch jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := public._require_user();
+  v_rescue public.rescue_stories;
+  v_ft jsonb;
+begin
+  insert into public.profiles (user_id) values (uid) on conflict do nothing;
+  insert into public.wallets (user_id) values (uid) on conflict do nothing;
+
+  if p_first_touch is not null then
+    select * into v_rescue from public.rescue_stories
+     where slug = public._clean_token(p_first_touch ->> 'rescue_slug') and status in ('published', 'archived');
+    v_ft := jsonb_strip_nulls(jsonb_build_object(
+      'rescue_id', v_rescue.id,
+      'rescue_slug', v_rescue.slug,
+      'source', public._clean_token(p_first_touch ->> 'source'),
+      'medium', public._clean_token(p_first_touch ->> 'medium'),
+      'campaign', public._clean_token(p_first_touch ->> 'campaign'),
+      'content', public._clean_token(p_first_touch ->> 'content')
+    ));
+    if v_ft = '{}'::jsonb then
+      v_ft := null;
+    end if;
+  end if;
+
+  update public.profiles set first_touch = coalesce(first_touch, v_ft) where user_id = uid;
+
+  if p_anonymous_id is not null then
+    update public.attribution_events
+       set user_id = uid
+     where anonymous_id = p_anonymous_id and user_id is null and occurred_at > now() - interval '30 days';
+  end if;
+
+  perform public._event('signup_completed', uid, null, '{}'::jsonb, 'signup:' || uid);
+  return jsonb_build_object('status', 'ok');
+end;
+$$;
+
+-- Data export for the signed-in player (runs with the caller's RLS).
+create or replace function public.export_my_data()
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select jsonb_build_object(
+    'exported_at', now(),
+    'profile', (select to_jsonb(p) from public.profiles p where p.user_id = auth.uid()),
+    'wallet', (select to_jsonb(w) from public.wallets w where w.user_id = auth.uid()),
+    'adoptions', (select coalesce(jsonb_agg(to_jsonb(u)), '[]') from public.user_animals u where u.user_id = auth.uid()),
+    'care_actions', (select coalesce(jsonb_agg(to_jsonb(c)), '[]') from public.care_actions c where c.user_id = auth.uid()),
+    'story_unlocks', (select coalesce(jsonb_agg(to_jsonb(s)), '[]') from public.user_story_unlocks s where s.user_id = auth.uid()),
+    'sanctuary', (select to_jsonb(s) from public.sanctuaries s where s.user_id = auth.uid()),
+    'inventory', (select coalesce(jsonb_agg(to_jsonb(i)), '[]') from public.user_inventory i where i.user_id = auth.uid()),
+    'placements', (select coalesce(jsonb_agg(to_jsonb(p)), '[]') from public.sanctuary_placements p where p.user_id = auth.uid()),
+    'currency_ledger', (select coalesce(jsonb_agg(to_jsonb(l)), '[]') from public.currency_ledger l where l.user_id = auth.uid())
+  );
+$$;
+
+-- ===========================================================================
+-- Waitlist (service role only: tokens are generated and emailed by the server)
+-- ===========================================================================
+
+create or replace function public.waitlist_upsert(
+  p_email text, p_token_hash text, p_unsubscribe_hash text, p_opt_in boolean, p_source jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_norm text := lower(btrim(p_email));
+  e public.waitlist_entries;
+begin
+  if v_norm !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' or char_length(v_norm) > 254 then
+    return jsonb_build_object('action', 'invalid');
+  end if;
+
+  select * into e from public.waitlist_entries where normalized_email = v_norm for update;
+  if not found then
+    insert into public.waitlist_entries (
+      email, normalized_email, verify_token_hash, verify_token_expires_at, unsubscribe_token_hash,
+      promotional_opt_in, source, last_sent_at, send_count
+    ) values (
+      btrim(p_email), v_norm, p_token_hash, now() + interval '48 hours', p_unsubscribe_hash,
+      coalesce(p_opt_in, false), p_source, now(), 1
+    )
+    on conflict (normalized_email) do nothing;
+    if not found then
+      return jsonb_build_object('action', 'skip');
+    end if;
+    insert into public.attribution_events (event_type, source, campaign, properties)
+    values ('waitlist_submitted', public._clean_token(p_source ->> 'source'), public._clean_token(p_source ->> 'campaign'),
+            jsonb_build_object('rescue_slug', public._clean_token(p_source ->> 'rescue_slug')));
+    return jsonb_build_object('action', 'send');
+  end if;
+
+  if e.status = 'verified' then
+    return jsonb_build_object('action', 'skip');
+  end if;
+
+  -- Pending or unsubscribed: resend at most every 2 minutes and 5 times a day.
+  if e.last_sent_at > now() - interval '2 minutes'
+     or (e.send_count >= 5 and e.last_sent_at > now() - interval '24 hours') then
+    return jsonb_build_object('action', 'skip');
+  end if;
+
+  update public.waitlist_entries set
+    status = 'pending',
+    verify_token_hash = p_token_hash,
+    verify_token_expires_at = now() + interval '48 hours',
+    unsubscribe_token_hash = p_unsubscribe_hash,
+    unsubscribed_at = null,
+    promotional_opt_in = coalesce(p_opt_in, false),
+    last_sent_at = now(),
+    send_count = case when e.last_sent_at > now() - interval '24 hours' then e.send_count + 1 else 1 end
+  where id = e.id;
+  return jsonb_build_object('action', 'send');
+end;
+$$;
+
+create or replace function public.waitlist_verify(p_token_hash text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare e public.waitlist_entries;
+begin
+  select * into e from public.waitlist_entries where verify_token_hash = p_token_hash for update;
+  if not found then
+    return jsonb_build_object('status', 'invalid');
+  end if;
+  if e.verify_token_expires_at < now() then
+    return jsonb_build_object('status', 'expired');
+  end if;
+  update public.waitlist_entries
+     set status = 'verified', verified_at = now(), verify_token_hash = null, verify_token_expires_at = null
+   where id = e.id;
+  insert into public.attribution_events (event_type, source, campaign, properties, dedupe_key)
+  values ('waitlist_verified', public._clean_token(e.source ->> 'source'), public._clean_token(e.source ->> 'campaign'),
+          '{}'::jsonb, 'waitlist_verified:' || e.id);
+  return jsonb_build_object('status', 'verified');
+end;
+$$;
+
+create or replace function public.waitlist_unsubscribe(p_unsubscribe_hash text, p_delete boolean default false)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if p_delete then
+    delete from public.waitlist_entries where unsubscribe_token_hash = p_unsubscribe_hash;
+    return jsonb_build_object('status', case when found then 'deleted' else 'invalid' end);
+  end if;
+  update public.waitlist_entries
+     set status = 'unsubscribed', promotional_opt_in = false, unsubscribed_at = now()
+   where unsubscribe_token_hash = p_unsubscribe_hash;
+  return jsonb_build_object('status', case when found then 'unsubscribed' else 'invalid' end);
+end;
+$$;
+
+-- ===========================================================================
+-- Admin API (role-checked inside each function)
+-- ===========================================================================
+
+create or replace function public._require_editor()
+returns uuid
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.is_content_editor() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  return auth.uid();
+end;
+$$;
+
+create or replace function public._require_admin()
+returns uuid
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  return auth.uid();
+end;
+$$;
+
+-- Publishes a rescue episode and its animal together (dependency order, one transaction).
+create or replace function public.admin_publish_rescue(p_rescue_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_admin uuid := public._require_editor();
+  r public.rescue_stories;
+  a public.animals;
+begin
+  select * into r from public.rescue_stories where id = p_rescue_id for update;
+  if not found then
+    return jsonb_build_object('status', 'not_found');
+  end if;
+  select * into a from public.animals where id = r.animal_id for update;
+  if a.status = 'archived' then
+    return jsonb_build_object('status', 'animal_archived');
+  end if;
+  if coalesce(a.bio, '') = '' then
+    return jsonb_build_object('status', 'animal_incomplete', 'missing', 'bio');
+  end if;
+  update public.animals set status = 'published' where id = a.id and status <> 'published';
+  update public.rescue_stories set status = 'published' where id = r.id;
+  return jsonb_build_object('status', 'published', 'rescue_slug', r.slug, 'animal_slug', a.slug);
+end;
+$$;
+
+create or replace function public.admin_overview()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare v_admin uuid := public._require_editor();
+begin
+  return jsonb_build_object(
+    'players', (select count(*) from public.profiles where onboarding_completed_at is not null),
+    'adoptions', (select count(*) from public.user_animals),
+    'care_24h', (select count(*) from public.care_actions where performed_at > now() - interval '24 hours'),
+    'waitlist_pending', (select count(*) from public.waitlist_entries where status = 'pending'),
+    'waitlist_verified', (select count(*) from public.waitlist_entries where status = 'verified'),
+    'animals_published', (select count(*) from public.animals where status = 'published'),
+    'animals_draft', (select count(*) from public.animals where status in ('draft', 'coming_soon')),
+    'rescues_published', (select count(*) from public.rescue_stories where status = 'published'),
+    'landing_views_7d', (select count(*) from public.attribution_events
+                          where event_type = 'rescue_landing_viewed' and occurred_at > now() - interval '7 days')
+  );
+end;
+$$;
+
+-- Aggregate funnel per rescue episode and traffic source. Counts distinct
+-- visitors/players; never returns emails or user ids.
+create or replace function public.admin_funnel(p_since timestamptz default now() - interval '30 days')
+returns table (
+  rescue_id uuid, rescue_slug text, rescue_title text, source text,
+  landing_views bigint, cta_clicks bigint, signups bigint, adoptions bigint,
+  first_cares bigint, return_d1 bigint, return_d7 bigint, purchases bigint
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  perform public._require_admin();
+  return query
+  select e.rescue_id, r.slug, r.title, coalesce(e.source, '(direct)'),
+    count(distinct coalesce(e.user_id::text, e.anonymous_id::text)) filter (where e.event_type = 'rescue_landing_viewed'),
+    count(distinct coalesce(e.user_id::text, e.anonymous_id::text)) filter (where e.event_type = 'adoption_cta_clicked'),
+    count(distinct e.user_id) filter (where e.event_type = 'signup_completed'),
+    count(distinct e.user_id) filter (where e.event_type = 'animal_adopted'),
+    count(distinct e.user_id) filter (where e.event_type = 'first_care_completed'),
+    count(distinct e.user_id) filter (where e.event_type = 'return_visit_1d'),
+    count(distinct e.user_id) filter (where e.event_type = 'return_visit_7d'),
+    count(*) filter (where e.event_type = 'decoration_purchased')
+  from public.attribution_events e
+  left join public.rescue_stories r on r.id = e.rescue_id
+  where e.occurred_at >= p_since
+  group by e.rescue_id, r.slug, r.title, coalesce(e.source, '(direct)')
+  order by 5 desc nulls last;
+end;
+$$;
+
+-- ===========================================================================
+-- Grants: lock everything down, then open exactly what each role needs.
+-- ===========================================================================
+do $$
+declare f record;
+begin
+  for f in
+    select p.oid::regprocedure as sig
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public'
+       and p.proname in (
+         '_economy', '_launch_open', '_require_user', '_local_date', '_valid_timezone', '_level_for',
+         '_clean_token', '_credit', '_event', '_unlock_chapters', '_placements', '_require_editor',
+         '_require_admin', 'complete_onboarding', 'update_profile', 'adopt_animal', 'rename_adoption',
+         'perform_care', 'purchase_decor', 'place_decor', 'remove_decor', 'rename_sanctuary',
+         'animal_chapter_outline', 'touch_activity', 'track_event', 'record_signup', 'export_my_data',
+         'waitlist_upsert', 'waitlist_verify', 'waitlist_unsubscribe', 'admin_publish_rescue',
+         'admin_overview', 'admin_funnel'
+       )
+  loop
+    execute format('revoke all on function %s from public, anon, authenticated', f.sig);
+  end loop;
+end;
+$$;
+
+grant execute on function
+  public.complete_onboarding(text, text, text, boolean, boolean, text, boolean),
+  public.update_profile(text, text, boolean, boolean),
+  public.adopt_animal(text, text),
+  public.rename_adoption(uuid, text),
+  public.perform_care(uuid, public.care_action_type, uuid),
+  public.purchase_decor(text, uuid),
+  public.place_decor(text, text),
+  public.remove_decor(text),
+  public.rename_sanctuary(text),
+  public.touch_activity(),
+  public.record_signup(uuid, jsonb),
+  public.export_my_data(),
+  public.admin_publish_rescue(uuid),
+  public.admin_overview(),
+  public.admin_funnel(timestamptz)
+to authenticated;
+
+grant execute on function
+  public.animal_chapter_outline(uuid),
+  public.track_event(text, uuid, text, text, jsonb)
+to anon, authenticated;
+
+grant execute on function
+  public.waitlist_upsert(text, text, text, boolean, jsonb),
+  public.waitlist_verify(text),
+  public.waitlist_unsubscribe(text, boolean)
+to service_role;
+
+-- ===== 20261019000400_storage.sql =====
+-- Media bucket for official character art, animation frames, posters and teasers.
+-- * Public read via CDN URLs (paths include a random id, so unpublished
+--   uploads are unlisted but not secret; keep embargoed source files elsewhere).
+-- * Only admins/editors can upload, replace, list or delete.
+-- * Type and size are enforced by the bucket itself; SVG is rejected because it
+--   can carry scripts.
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'pawtopia-media', 'pawtopia-media', true, 52428800,
+  array['image/png', 'image/webp', 'image/jpeg', 'image/gif', 'video/mp4', 'video/webm']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "pawtopia media editor read" on storage.objects;
+drop policy if exists "pawtopia media editor insert" on storage.objects;
+drop policy if exists "pawtopia media editor update" on storage.objects;
+drop policy if exists "pawtopia media editor delete" on storage.objects;
+
+create policy "pawtopia media editor read" on storage.objects
+  for select to authenticated
+  using (bucket_id = 'pawtopia-media' and public.is_content_editor());
+
+create policy "pawtopia media editor insert" on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'pawtopia-media'
+    and public.is_content_editor()
+    and (storage.foldername(name))[1] = 'animals'
+  );
+
+create policy "pawtopia media editor update" on storage.objects
+  for update to authenticated
+  using (bucket_id = 'pawtopia-media' and public.is_content_editor())
+  with check (bucket_id = 'pawtopia-media' and public.is_content_editor());
+
+create policy "pawtopia media editor delete" on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'pawtopia-media' and public.is_content_editor());
+
+-- ===== seed.sql =====
+-- Pawtopia seed content. Safe to re-run (upserts by slug/key).
+-- Maple is fully playable; Ripple, Pebble, Ember and Acorn are "coming soon".
+-- All stories are fictional.
+
+-- ---------------------------------------------------------------- settings
+insert into public.app_settings (key, value) values
+  ('launch', '{"mode": "open", "featured_animal_slug": "maple"}'),
+  ('economy', '{
+     "welcome_acorns": 50,
+     "actions": {
+       "comfort": {"xp": 5, "acorns": 5, "cooldown_seconds": 20},
+       "snack":   {"xp": 5, "acorns": 5, "cooldown_seconds": 30},
+       "play":    {"xp": 8, "acorns": 5, "cooldown_seconds": 30},
+       "rest":    {"xp": 3, "acorns": 5, "cooldown_seconds": 45}
+     },
+     "daily_acorn_actions": 3,
+     "daily_xp_cap": 60,
+     "first_care_gift_decor": "soft-blanket",
+     "level_thresholds": [0, 15, 40, 75, 120, 180, 250, 330, 420, 520]
+   }')
+on conflict (key) do nothing;
+
+-- ---------------------------------------------------------------- habitats
+-- Slot coordinates are percentages of the scene (x from left, y from top,
+-- anchored at the item's base). `category` must match decor slot_category.
+insert into public.habitats (slug, name, description, scene_style, slots) values
+  ('forest-glade', 'Whispering Forest Glade', 'A sun-dappled clearing with mossy roots, ferns and a babbling creek.', 'forest', '[
+    {"id": "large-left",   "category": "large",   "label": "Left meadow",       "x": 16, "y": 70, "z": 10},
+    {"id": "large-right",  "category": "large",   "label": "Right meadow",      "x": 84, "y": 68, "z": 10},
+    {"id": "hanging-left", "category": "hanging", "label": "Low branch",        "x": 24, "y": 30, "z": 20},
+    {"id": "hanging-right","category": "hanging", "label": "Oak branch",        "x": 76, "y": 26, "z": 20},
+    {"id": "small-1",      "category": "small",   "label": "Mossy corner",      "x": 24, "y": 86, "z": 30},
+    {"id": "small-2",      "category": "small",   "label": "By the roots",      "x": 77, "y": 87, "z": 30},
+    {"id": "small-3",      "category": "small",   "label": "Clover patch",      "x": 37, "y": 94, "z": 31},
+    {"id": "small-4",      "category": "small",   "label": "Pebble path",       "x": 64, "y": 95, "z": 31}
+  ]'),
+  ('riverbank', 'Willow Riverbank', 'Cool shallows, smooth stones and willow shade for water-loving friends.', 'river', '[
+    {"id": "large-left",   "category": "large",   "label": "Willow bend",       "x": 16, "y": 70, "z": 10},
+    {"id": "large-right",  "category": "large",   "label": "Reed bed",          "x": 84, "y": 68, "z": 10},
+    {"id": "hanging-left", "category": "hanging", "label": "Willow branch",     "x": 24, "y": 30, "z": 20},
+    {"id": "hanging-right","category": "hanging", "label": "Alder branch",      "x": 76, "y": 26, "z": 20},
+    {"id": "small-1",      "category": "small",   "label": "Sandy spot",        "x": 24, "y": 86, "z": 30},
+    {"id": "small-2",      "category": "small",   "label": "Stepping stones",   "x": 77, "y": 87, "z": 30},
+    {"id": "small-3",      "category": "small",   "label": "Pebble beach",      "x": 37, "y": 94, "z": 31},
+    {"id": "small-4",      "category": "small",   "label": "Mossy log",         "x": 64, "y": 95, "z": 31}
+  ]'),
+  ('frosty-cove', 'Frosty Cove', 'A chilly, sparkling cove with snowbanks and a cold, clear pool.', 'snow', '[
+    {"id": "large-left",   "category": "large",   "label": "Snowbank",          "x": 16, "y": 70, "z": 10},
+    {"id": "large-right",  "category": "large",   "label": "Ice ledge",         "x": 84, "y": 68, "z": 10},
+    {"id": "hanging-left", "category": "hanging", "label": "Icicle arch",       "x": 24, "y": 30, "z": 20},
+    {"id": "hanging-right","category": "hanging", "label": "Frost pole",        "x": 76, "y": 26, "z": 20},
+    {"id": "small-1",      "category": "small",   "label": "Snowy corner",      "x": 24, "y": 86, "z": 30},
+    {"id": "small-2",      "category": "small",   "label": "Pool edge",         "x": 77, "y": 87, "z": 30},
+    {"id": "small-3",      "category": "small",   "label": "Frost patch",       "x": 37, "y": 94, "z": 31},
+    {"id": "small-4",      "category": "small",   "label": "Pebble shore",      "x": 64, "y": 95, "z": 31}
+  ]')
+on conflict (slug) do update set
+  name = excluded.name, description = excluded.description, scene_style = excluded.scene_style, slots = excluded.slots;
+
+-- ---------------------------------------------------------------- animals
+insert into public.animals (
+  slug, name, species, placeholder_style, habitat_slug, tagline, bio, personality_tags, appearance, colors,
+  status, featured, sort_order, release_at
+) values
+  ('maple', 'Maple', 'Raccoon', 'raccoon', 'forest-glade',
+   'A curious, slightly shy raccoon who loves shiny pebbles and warm blankets.',
+   'Maple was found (in our fictional story) clinging to a floating crate after a spring flood swept through Hollow Creek. Now safe and dry, she is learning that the world can be gentle again. She is curious about everything, a little shy at first, and absolutely cannot resist a shiny pebble.',
+   array['curious', 'a little shy', 'gentle', 'pebble collector'],
+   'Chestnut fur, a dark face mask, a ringed tail and a tiny cream spot on her forehead.',
+   '{"fur": "#8B5A3C", "mask": "#3B2A25", "accent": "#F3E3C3", "belly": "#D9B48F"}',
+   'published', true, 10, now()),
+  ('ripple', 'Ripple', 'River otter', 'otter', 'riverbank',
+   'A bubbly otter who turns every puddle into a party.',
+   'Ripple''s fictional story begins on a muddy riverbank after a storm. Coming soon to Pawtopia.',
+   array['playful', 'chatty', 'brave'],
+   'Glossy brown coat, pale chin and whiskery grin.',
+   '{"fur": "#6B4A33", "mask": "#4A3324", "accent": "#E9D7BF", "belly": "#CDB497"}',
+   'coming_soon', false, 20, null),
+  ('pebble', 'Pebble', 'Penguin', 'penguin', 'frosty-cove',
+   'A tiny penguin with big waddles and an even bigger heart.',
+   'Pebble''s fictional cold-water rescue story is coming soon.',
+   array['determined', 'sweet', 'clumsy'],
+   'Classic tuxedo with a little yellow blush on the cheeks.',
+   '{"fur": "#24303A", "mask": "#24303A", "accent": "#F6C445", "belly": "#F8F6F0"}',
+   'coming_soon', false, 30, null),
+  ('ember', 'Ember', 'Red fox', 'fox', 'forest-glade',
+   'A watchful fox with a fluffy tail and a soft spot for sunsets.',
+   'Ember''s fictional forest evacuation story is coming soon.',
+   array['watchful', 'loyal', 'quick'],
+   'Ember-orange coat, white tail tip and dark socks.',
+   '{"fur": "#D46A2E", "mask": "#F5E6D3", "accent": "#FFFFFF", "belly": "#F5E6D3"}',
+   'coming_soon', false, 40, null),
+  ('acorn', 'Acorn', 'Red squirrel', 'squirrel', 'forest-glade',
+   'A busy little squirrel who never forgets where the snacks are hidden.',
+   'Acorn''s fictional tree-top rescue story is coming soon.',
+   array['busy', 'clever', 'cheeky'],
+   'Russet fur, tufted ears and a tail like a question mark.',
+   '{"fur": "#B5562B", "mask": "#B5562B", "accent": "#F2DDC1", "belly": "#F2DDC1"}',
+   'coming_soon', false, 50, null)
+on conflict (slug) do nothing;
+
+-- ---------------------------------------------------------------- rescue episodes
+insert into public.rescue_stories (
+  slug, animal_id, title, synopsis, story_body, season, episode, status, ai_fiction_disclosure
+)
+select 'maple-flood-rescue', a.id, 'Maple and the Hollow Creek Flood',
+  'When spring floodwater rose around Hollow Creek, a tiny raccoon clung to a floating crate — until gentle hands brought her somewhere warm.',
+  'In this fictional AI-generated story, rescuers spot a small raccoon riding a wooden crate through the flooded lanes of Hollow Creek. Wrapped in a soft towel and carried to safety, she is given a name that matches her chestnut fur: Maple. Her next chapter starts here, in Pawtopia — where you can virtually adopt her, help her feel safe, and build her a cozy forest home.',
+  1, 1, 'published', true
+from public.animals a where a.slug = 'maple'
+on conflict (slug) do nothing;
+
+-- ---------------------------------------------------------------- Maple's recovery chapters
+insert into public.story_chapters (animal_id, ordinal, phase, title, body, unlock_bond_xp)
+select a.id, c.ordinal, c.phase::public.recovery_phase, c.title, c.body, c.xp
+from public.animals a
+cross join (values
+  (1, 'arrival', 'A Warm, Dry Corner', 0,
+   'The rain has stopped. Maple peeks out from a nest of soft blankets and sniffs the air: pine needles, warm clay, and something sweet. Nobody is rushing her. For the first time in days, her paws are dry. She curls her ringed tail around her nose and listens to the creek — gentle now, just a whisper. Maybe, she thinks, this place is okay.'),
+  (2, 'feeling_safe', 'The First Sniff', 25,
+   'Today Maple tiptoed all the way to the edge of the clearing and back again — twice! She found a smooth grey pebble by the roots and carried it home like treasure. When you said her name, her ears swivelled toward you. She did not run. She blinked slowly, the way raccoons do when they are starting to feel safe.'),
+  (3, 'learning_to_trust', 'Pebble Gifts', 70,
+   'Maple has started leaving little gifts by your feet: a pebble, a leaf, one very confused beetle (who was gently returned to the ferns). She chirrs softly when you visit and has decided the blanket corner is officially hers. She is still a little shy, but she trusts you — and that is the bravest thing of all.'),
+  (4, 'thriving', 'The Great Acorn Hunt', 140,
+   'Maple is unstoppable. She splashes in the shallows, climbs the old oak like it is a staircase, and has organised her pebble collection by size. The other forest critters peek into the glade to watch her play. The flood feels like a story from long ago. Now there is sunshine, snacks, and a friend who always comes back.'),
+  (5, 'new_beginning', 'Moonlight on the Creek', 240,
+   'On a silver-bright night, Maple sits on the big mossy stone and looks out at the forest. She is strong now — strong enough for adventures of her own. In this fictional story she wanders to the creek''s edge, turns back once to chirr goodbye, and then explores the moonlit woods. But a sanctuary is forever: Maple will always have a home in your Memory Meadow, and she visits whenever you call.')
+) as c(ordinal, phase, title, xp, body)
+where a.slug = 'maple'
+on conflict (animal_id, ordinal) do nothing;
+
+-- ---------------------------------------------------------------- decorations
+insert into public.decor_catalog (slug, name, description, price, slot_category, habitat_tags, art_key, sort_order) values
+  ('soft-blanket', 'Soft Blanket', 'A cozy quilted blanket for afternoon naps.', 25, 'small', array['forest-glade', 'riverbank', 'frosty-cove'], 'blanket', 10),
+  ('food-bowl', 'Woodland Bowl', 'A carved wooden bowl, always mysteriously full of berries.', 15, 'small', array['forest-glade', 'riverbank', 'frosty-cove'], 'bowl', 20),
+  ('flower-patch', 'Wildflower Patch', 'A cheerful burst of daisies and bluebells.', 20, 'small', array['forest-glade', 'riverbank'], 'flowers', 30),
+  ('toy-ball', 'Bouncy Ball', 'A soft, bouncy ball for zoomies.', 30, 'small', array['forest-glade', 'riverbank', 'frosty-cove'], 'ball', 40),
+  ('lantern', 'Firefly Lantern', 'A glowing lantern that hums softly at dusk.', 40, 'hanging', array['forest-glade', 'riverbank', 'frosty-cove'], 'lantern', 50),
+  ('leaf-bunting', 'Leaf Bunting', 'A string of felt leaves that flutters in the breeze.', 35, 'hanging', array['forest-glade', 'riverbank'], 'bunting', 60),
+  ('small-tree', 'Little Maple Tree', 'A young tree with red-gold leaves. Perfect for climbing practice.', 60, 'large', array['forest-glade', 'riverbank'], 'tree', 70),
+  ('cozy-den', 'Cozy Log Den', 'A hollow log lined with moss — the ultimate hideaway.', 70, 'large', array['forest-glade'], 'den', 80),
+  ('lily-pond', 'Lily Pond', 'A tiny pond with lily pads and a curious frog.', 80, 'large', array['forest-glade', 'riverbank'], 'pond', 90)
+on conflict (slug) do nothing;

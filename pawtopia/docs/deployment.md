@@ -3,7 +3,8 @@
 ## 1. Supabase project
 
 1. Create a project at supabase.com (pick a region near your players).
-2. Apply the database:
+2. Apply the database — easiest: open **SQL Editor → New query**, paste the whole of
+   `supabase/setup.sql` (all migrations + seed in one file) and click **Run**. Or with the CLI:
    ```bash
    cd pawtopia
    npx supabase login
