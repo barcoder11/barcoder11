@@ -11,6 +11,7 @@ import { deleteAccountAction, signOutAction, type FormState } from "@/lib/action
 export function AccountSettings({ email }: { email: string }) {
   const [state, action, pending] = useActionState<FormState, FormData>(deleteAccountAction, null);
   const [open, setOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
   return (
     <div className="flex flex-col gap-4">
       <div className="rounded-2xl bg-muted/60 p-4">
@@ -47,7 +48,15 @@ export function AccountSettings({ email }: { email: string }) {
               <DialogDescription>Pip will miss you. Everything will be permanently erased. Type DELETE to confirm.</DialogDescription>
             </DialogHeader>
             <form action={action} className="flex flex-col gap-4">
-              <FormField label="Type DELETE" name="confirm" autoComplete="off" autoCapitalize="characters" error={state?.fieldErrors?.confirm} />
+              <FormField
+                label="Type DELETE"
+                name="confirm"
+                autoComplete="off"
+                autoCapitalize="characters"
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                error={state?.fieldErrors?.confirm}
+              />
               {state?.error && <FormAlert>{state.error}</FormAlert>}
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>

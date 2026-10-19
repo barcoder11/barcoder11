@@ -322,7 +322,10 @@ export function TreehouseScene({
       </svg>
 
       {/* Pip (HTML layer so the art can be any image and he can talk) */}
-      <div className="absolute" style={{ left: "42%", top: "57%", width: "23.5%", height: "22.4%" }}>
+      <div
+        className={cn("absolute transition-opacity", editMode && "pointer-events-none opacity-50")}
+        style={{ left: "42%", top: "57%", width: "23.5%", height: "22.4%" }}
+      >
         <Pip pose={pipPose} fill interactive={interactivePip && !editMode} />
       </div>
     </div>

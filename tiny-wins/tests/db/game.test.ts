@@ -365,6 +365,22 @@ run("database", () => {
       expect(after.acorns).toBeGreaterThanOrEqual(before.acorns);
     });
 
+    it("reports history per day and per goal", async () => {
+      const uid = await createUser();
+      await onboard(uid);
+      const day1 = await rpc<QuestDay>(uid, "get_today_quests");
+      await rpc(uid, "complete_quest", [day1.quests[0].id]);
+      await rpc(uid, "complete_quest", [day1.quests[1].id]);
+      await shiftDaysBack(uid);
+      const day2 = await rpc<QuestDay>(uid, "get_today_quests");
+      await rpc(uid, "complete_quest", [day2.quests[0].id]);
+      const h = await rpc<{ byDay: { date: string; completed: number }[]; byCategory: Record<string, number> }>(uid, "get_quest_history", [7]);
+      expect(h.byDay).toHaveLength(7);
+      expect(h.byDay[6]).toMatchObject({ date: day2.date, completed: 1 });
+      expect(h.byDay[5].completed).toBe(2);
+      expect(Object.values(h.byCategory).reduce((a, b) => a + b, 0)).toBe(3);
+    });
+
     it("old quests cannot be completed after the day ends", async () => {
       const uid = await createUser();
       await onboard(uid);

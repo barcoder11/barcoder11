@@ -2,6 +2,7 @@ import "server-only";
 
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, isSupabaseConfigured } from "@/lib/env";
 
 export class SupabaseNotConfiguredError extends Error {
@@ -14,6 +15,8 @@ export class SupabaseNotConfiguredError extends Error {
 export async function createClient() {
   // Read cookies first so this is always treated as request-time work.
   const cookieStore = await cookies();
+  // auth-js checks token expiry with Date.now(); mark this as request-time work.
+  await connection();
   if (!isSupabaseConfigured) throw new SupabaseNotConfiguredError();
 
   return createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {

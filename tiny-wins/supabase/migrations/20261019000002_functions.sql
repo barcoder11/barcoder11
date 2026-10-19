@@ -588,6 +588,42 @@ begin
 end;
 $$;
 
+-- Quests completed per day (last p_days quest days) and per goal (all time).
+create or replace function public.get_quest_history(p_days integer default 7)
+returns jsonb
+language plpgsql stable security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_tz text;
+  v_day date;
+  v_days integer := least(greatest(coalesce(p_days, 7), 1), 90);
+begin
+  if v_uid is null then
+    raise exception 'not_authenticated' using errcode = '28000';
+  end if;
+  select timezone into v_tz from public.profiles where id = v_uid;
+  v_day := public._quest_day(v_uid, coalesce(v_tz, 'UTC'));
+
+  return jsonb_build_object(
+    'byDay', (
+      select jsonb_agg(jsonb_build_object('date', d.day, 'completed', coalesce(c.n, 0)) order by d.day)
+      from (select (v_day - g)::date as day from generate_series(0, v_days - 1) g) d
+      left join (
+        select quest_date, count(*)::integer as n from public.daily_quests
+        where user_id = v_uid and completed_at is not null and quest_date > v_day - v_days
+        group by quest_date
+      ) c on c.quest_date = d.day),
+    'byCategory', coalesce((
+      select jsonb_object_agg(x.category, x.n) from (
+        select t.category, count(*)::integer as n
+        from public.daily_quests q join public.quest_templates t on t.id = q.template_id
+        where q.user_id = v_uid and q.completed_at is not null
+        group by t.category) x), '{}'::jsonb));
+end;
+$$;
+
 -- ---------------------------------------------------------------------------
 -- Server-only: waitlist + rate limiting (service role)
 -- ---------------------------------------------------------------------------
@@ -724,7 +760,8 @@ grant execute on function
   public.swap_quest(uuid),
   public.purchase_item(text),
   public.equip_item(text),
-  public.unequip_slot(text)
+  public.unequip_slot(text),
+  public.get_quest_history(integer)
 to authenticated;
 
 grant execute on function

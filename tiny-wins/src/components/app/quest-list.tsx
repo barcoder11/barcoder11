@@ -17,7 +17,14 @@ type Props = { day: QuestDay; level: number; timezone: string; compact?: boolean
 export function QuestList({ day, level, timezone, compact = false, allowSwap = false }: Props) {
   const { celebrateRewards } = useCelebration();
   const [justDone, setJustDone] = useState<string | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [busy, setBusy] = useState<ReadonlySet<string>>(new Set());
+  const setBusyFor = (id: string, on: boolean) =>
+    setBusy((cur) => {
+      const next = new Set(cur);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
   const [, startTransition] = useTransition();
   const baseDone = new Set(day.quests.filter((q) => q.completedAt).map((q) => q.id));
   const [done, markDone] = useOptimistic(baseDone, (s: Set<string>, id: string) => new Set(s).add(id));
@@ -25,13 +32,14 @@ export function QuestList({ day, level, timezone, compact = false, allowSwap = f
   const allDone = day.quests.length > 0 && day.quests.every((q) => done.has(q.id));
 
   function complete(id: string) {
-    if (busyId) return;
-    setBusyId(id);
+    // Each quest can be in flight once; different quests may be tapped quickly.
+    if (busy.has(id) || done.has(id)) return;
+    setBusyFor(id, true);
     startTransition(async () => {
       markDone(id);
       setJustDone(id);
       const res = await completeQuestAction(id);
-      setBusyId(null);
+      setBusyFor(id, false);
       if (!res.ok) {
         setJustDone(null);
         toast.error(res.error);
@@ -42,11 +50,11 @@ export function QuestList({ day, level, timezone, compact = false, allowSwap = f
   }
 
   function swap(id: string) {
-    if (busyId) return;
-    setBusyId(id);
+    if (busy.size) return;
+    setBusyFor(id, true);
     startTransition(async () => {
       const res = await swapQuestAction(id);
-      setBusyId(null);
+      setBusyFor(id, false);
       if (!res.ok) toast.error(res.error);
       else toast("🔀 Quest swapped!", { description: "You get one swap per day." });
     });
@@ -96,7 +104,7 @@ export function QuestList({ day, level, timezone, compact = false, allowSwap = f
             acorns: q.acorns,
             completed: done.has(q.id),
           }}
-          pending={busyId === q.id}
+          pending={busy.has(q.id)}
           justCompleted={justDone === q.id}
           onComplete={() => complete(q.id)}
           onSwap={allowSwap && day.swapAvailable ? () => swap(q.id) : undefined}

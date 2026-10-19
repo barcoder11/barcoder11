@@ -91,51 +91,13 @@ export const getRecentRewards = cache(async (limit = 15): Promise<RewardEvent[]>
   return (data ?? []) as RewardEvent[];
 });
 
-export type HistoryDay = { date: string; completed: number; categories: Record<string, number> };
+export type HistoryDay = { date: string; completed: number };
 
-/** Completed quests per day for the last `days` quest days. */
+/** Completed quests per day (last `days` quest days) and per goal (all time). */
 export const getQuestHistory = cache(async (days = 7): Promise<{ byDay: HistoryDay[]; byCategory: Record<string, number> }> => {
   await requireUser();
   const supabase = await createClient();
-  const today = await getTodayQuests();
-  const end = new Date(`${today.date}T00:00:00Z`);
-  const start = new Date(end);
-  start.setUTCDate(end.getUTCDate() - (days - 1));
-  const startStr = start.toISOString().slice(0, 10);
-
-  const [recent, totals] = await Promise.all([
-    supabase
-      .from("daily_quests")
-      .select("quest_date, completed_at, quest_templates(category)")
-      .gte("quest_date", startStr)
-      .not("completed_at", "is", null),
-    supabase.from("daily_quests").select("quest_templates(category)").not("completed_at", "is", null).limit(5000),
-  ]);
-  if (recent.error) throw new Error(recent.error.message);
-  if (totals.error) throw new Error(totals.error.message);
-
-  const map = new Map<string, HistoryDay>();
-  for (let i = 0; i < days; i++) {
-    const d = new Date(start);
-    d.setUTCDate(start.getUTCDate() + i);
-    const key = d.toISOString().slice(0, 10);
-    map.set(key, { date: key, completed: 0, categories: {} });
-  }
-  const categoryOf = (row: { quest_templates: unknown }) => {
-    const t = row.quest_templates as { category?: string } | { category?: string }[] | null;
-    return (Array.isArray(t) ? t[0]?.category : t?.category) ?? "other";
-  };
-  for (const row of recent.data ?? []) {
-    const day = map.get(row.quest_date as string);
-    if (!day) continue;
-    day.completed += 1;
-    const c = categoryOf(row);
-    day.categories[c] = (day.categories[c] ?? 0) + 1;
-  }
-  const byCategory: Record<string, number> = {};
-  for (const row of totals.data ?? []) {
-    const c = categoryOf(row);
-    byCategory[c] = (byCategory[c] ?? 0) + 1;
-  }
-  return { byDay: [...map.values()], byCategory };
+  const { data, error } = await supabase.rpc("get_quest_history", { p_days: days });
+  if (error) throw new Error(`Could not load history: ${error.message}`);
+  return data as { byDay: HistoryDay[]; byCategory: Record<string, number> };
 });
