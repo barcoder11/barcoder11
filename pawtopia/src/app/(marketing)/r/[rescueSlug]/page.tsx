@@ -130,7 +130,7 @@ export default async function RescuePage({ params }: PageProps<"/r/[rescueSlug]"
                 <Notice>{animal.name} is coming soon. Check back after the next episode!</Notice>
               )
             ) : (
-              <WaitlistForm source={{ source: "rescue", rescue_slug: rescue.slug }} />
+              <WaitlistForm context="rescue_page" />
             )}
             <p className="text-xs text-ink-soft">Free to play · No real money · Sign in with just your email</p>
           </div>

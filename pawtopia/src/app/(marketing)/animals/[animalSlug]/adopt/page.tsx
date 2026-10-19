@@ -48,7 +48,7 @@ export default async function AdoptPage({ params }: PageProps<"/animals/[animalS
           ) : launch.mode !== "open" && !isEditor ? (
             <>
               <Notice>Adoptions open soon. Join the waitlist and we&apos;ll let you know!</Notice>
-              <WaitlistForm source={{ source: "adopt_page" }} />
+              <WaitlistForm context="adopt_page" />
             </>
           ) : (
             <AdoptForm slug={animal.slug} name={animal.name} />

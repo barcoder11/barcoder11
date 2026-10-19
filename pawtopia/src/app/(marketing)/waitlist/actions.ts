@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { decodeFirstTouch, FIRST_TOUCH_COOKIE } from "@/lib/attribution";
 import { emailConfigured, sendEmail } from "@/lib/email";
 import { env } from "@/lib/env";
+import { clientKey } from "@/lib/request";
 import { newToken } from "@/lib/tokens";
 
 export type WaitlistState = { status: "idle" | "ok" | "error"; message?: string };
@@ -12,10 +13,15 @@ export type WaitlistState = { status: "idle" | "ok" | "error"; message?: string 
 const schema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
   promo: z.literal("on").optional(),
+  form: z.string().regex(/^[a-z_]{1,30}$/).optional(),
 });
 
 export async function joinWaitlist(_prev: WaitlistState, form: FormData): Promise<WaitlistState> {
-  const parsed = schema.safeParse({ email: form.get("email"), promo: form.get("promo") ?? undefined });
+  const parsed = schema.safeParse({
+    email: form.get("email"),
+    promo: form.get("promo") ?? undefined,
+    form: form.get("form") ?? undefined,
+  });
   if (!parsed.success) return { status: "error", message: "Please enter a valid email address." };
 
   const admin = createAdminClient();
@@ -31,10 +37,14 @@ export async function joinWaitlist(_prev: WaitlistState, form: FormData): Promis
     p_token_hash: verify.hash,
     p_unsubscribe_hash: unsub.hash,
     p_opt_in: parsed.data.promo === "on",
-    p_source: touch ?? { source: "direct" },
+    p_source: { ...(touch ?? { source: "direct" }), form: parsed.data.form ?? null },
+    p_client_key: await clientKey("waitlist"),
   });
   if (error) return { status: "error", message: "Something went wrong. Please try again in a moment." };
   if (data?.action === "invalid") return { status: "error", message: "Please enter a valid email address." };
+  if (data?.action === "rate_limited") {
+    return { status: "error", message: "Too many sign-ups from this connection. Please try again in an hour." };
+  }
 
   if (data?.action === "send") {
     const verifyUrl = `${env.siteUrl}/waitlist/verify?token=${verify.token}`;

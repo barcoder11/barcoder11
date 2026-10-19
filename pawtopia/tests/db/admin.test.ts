@@ -109,7 +109,7 @@ describe.skipIf(!dbTestsEnabled)("admin protection", () => {
 describe.skipIf(!dbTestsEnabled)("waitlist", () => {
   it("is only writable by the server (service role)", async () => {
     const r = await anonClient().rpc("waitlist_upsert", {
-      p_email: "x@example.test", p_token_hash: "a", p_unsubscribe_hash: "b", p_opt_in: false, p_source: {},
+      p_email: "x@example.test", p_token_hash: "a", p_unsubscribe_hash: "b", p_opt_in: false, p_source: {}, p_client_key: "k",
     });
     expect(r.error).not.toBeNull();
   });
@@ -121,11 +121,13 @@ describe.skipIf(!dbTestsEnabled)("waitlist", () => {
     const unsub = crypto.randomUUID();
     const first = await svc.rpc("waitlist_upsert", {
       p_email: email, p_token_hash: sha(tok), p_unsubscribe_hash: sha(unsub), p_opt_in: true, p_source: { source: "instagram" },
+      p_client_key: `test:${crypto.randomUUID()}`,
     });
     expect(first.data.action).toBe("send");
     // Immediate duplicate (any casing) is rate limited -> skip, no second email.
     const dup = await svc.rpc("waitlist_upsert", {
       p_email: email.toLowerCase(), p_token_hash: sha("other"), p_unsubscribe_hash: sha("other2"), p_opt_in: false, p_source: {},
+      p_client_key: `test:${crypto.randomUUID()}`,
     });
     expect(dup.data.action).toBe("skip");
     const { rows } = await pool.query(`select count(*)::int n from public.waitlist_entries where normalized_email = $1`, [email.toLowerCase()]);
@@ -139,6 +141,47 @@ describe.skipIf(!dbTestsEnabled)("waitlist", () => {
     expect((await svc.rpc("waitlist_unsubscribe", { p_unsubscribe_hash: sha(unsub), p_delete: true })).data.status).toBe("deleted");
     const { rows: after } = await pool.query(`select count(*)::int n from public.waitlist_entries where normalized_email = $1`, [email.toLowerCase()]);
     expect(after[0].n).toBe(0);
+  });
+});
+
+describe.skipIf(!dbTestsEnabled)("abuse protection and retention", () => {
+  it("limits waitlist sign-ups per client", async () => {
+    const svc = serviceClient();
+    const key = `test:${crypto.randomUUID()}`;
+    const actions: string[] = [];
+    for (let i = 0; i < 9; i++) {
+      const { data } = await svc.rpc("waitlist_upsert", {
+        p_email: `flood-${i}-${crypto.randomUUID().slice(0, 6)}@example.test`, p_token_hash: sha(`t${i}`),
+        p_unsubscribe_hash: sha(`u${i}`), p_opt_in: false, p_source: {}, p_client_key: key,
+      });
+      actions.push(data.action);
+    }
+    expect(actions.slice(0, 8).every((a) => a === "send")).toBe(true);
+    expect(actions[8]).toBe("rate_limited");
+  });
+
+  it("maintenance purges stale data and is server-only", async () => {
+    expect((await anonClient().rpc("run_maintenance")).error).not.toBeNull();
+    const oldAnon = crypto.randomUUID();
+    const staleEmail = `stale-${crypto.randomUUID().slice(0, 6)}@example.test`;
+    await pool.query(
+      `insert into public.attribution_events (event_type, anonymous_id, occurred_at) values ('rescue_landing_viewed', $1, now() - interval '200 days')`,
+      [oldAnon],
+    );
+    await pool.query(
+      `insert into public.waitlist_entries (email, normalized_email, created_at) values ($1, $1, now() - interval '40 days')`,
+      [staleEmail],
+    );
+    await pool.query(`insert into public.rate_limits (bucket, window_start, hits) values ('test:old', now() - interval '3 days', 1)`);
+    const { data, error } = await serviceClient().rpc("run_maintenance");
+    expect(error).toBeNull();
+    expect(data.old_anonymous_events_deleted).toBeGreaterThanOrEqual(1);
+    expect(data.stale_waitlist_deleted).toBeGreaterThanOrEqual(1);
+    expect(data.rate_limit_rows_deleted).toBeGreaterThanOrEqual(1);
+    const { rows } = await pool.query(`select count(*)::int n from public.attribution_events where anonymous_id = $1`, [oldAnon]);
+    expect(rows[0].n).toBe(0);
+    const { rows: w } = await pool.query(`select count(*)::int n from public.waitlist_entries where normalized_email = $1`, [staleEmail]);
+    expect(w[0].n).toBe(0);
   });
 });
 

@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Card } from "@/components/ui";
+import { decodeFirstTouch, encodeFirstTouch, FIRST_TOUCH_COOKIE } from "@/lib/attribution";
 import { getSessionUser } from "@/lib/auth";
+import { siteOrigin } from "@/lib/request";
 import { sanitizeNext } from "@/lib/safe-redirect";
 import { AuthForm } from "./AuthForm";
 
@@ -18,6 +21,8 @@ export default async function AuthPage({ searchParams }: PageProps<"/auth">) {
   if (await getSessionUser()) redirect(next);
   const error = typeof sp.error === "string" ? ERRORS[sp.error] : undefined;
   const adopting = next.match(/^\/animals\/([a-z0-9-]+)\/adopt/);
+  // The visitor's own (sanitised) first-touch attribution, saved with a new account.
+  const touch = decodeFirstTouch((await cookies()).get(FIRST_TOUCH_COOKIE)?.value);
 
   return (
     <Card className="w-full max-w-md p-7 pop-in">
@@ -30,7 +35,7 @@ export default async function AuthPage({ searchParams }: PageProps<"/auth">) {
           {adopting ? "Sign in with your email so your new friend is saved to your sanctuary." : "Sign in or create your free account."}
         </p>
       </div>
-      <AuthForm next={next} initialError={error} />
+      <AuthForm next={next} initialError={error} siteOrigin={await siteOrigin()} firstTouch={touch ? encodeFirstTouch(touch) : null} />
     </Card>
   );
 }

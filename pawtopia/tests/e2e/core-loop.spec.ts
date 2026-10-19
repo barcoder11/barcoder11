@@ -99,6 +99,9 @@ test("magic link opened on another device returns the new player to Maple with a
   const b = await browser.newContext();
   const pb = await b.newPage();
   await pb.goto(link);
+  // Nothing happens until the player taps (protects one-time links from email scanners).
+  await expect(pb.getByRole("heading", { name: "Ready to enter Pawtopia?" })).toBeVisible();
+  await pb.getByTestId("confirm-sign-in").click();
   await expect(pb).toHaveURL(/\/onboarding\?next=%2Fanimals%2Fmaple%2Fadopt/);
   await completeOnboarding(pb);
   await expect(pb).toHaveURL(/\/animals\/maple\/adopt/);

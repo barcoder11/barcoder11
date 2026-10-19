@@ -3,7 +3,8 @@ import { useActionState } from "react";
 import { joinWaitlist, type WaitlistState } from "@/app/(marketing)/waitlist/actions";
 import { Button, Input, Notice } from "@/components/ui";
 
-export function WaitlistForm({ source }: { source?: Record<string, string> }) {
+/** `context` records which page the form was on (e.g. "rescue_page") for the funnel. */
+export function WaitlistForm({ context }: { context: string }) {
   const [state, action, pending] = useActionState<WaitlistState, FormData>(joinWaitlist, { status: "idle" });
   if (state.status === "ok") {
     return (
@@ -13,7 +14,8 @@ export function WaitlistForm({ source }: { source?: Record<string, string> }) {
     );
   }
   return (
-    <form action={action} className="grid gap-3" data-source={source?.source}>
+    <form action={action} className="grid gap-3">
+      <input type="hidden" name="form" value={context} />
       <label htmlFor="waitlist-email" className="text-sm font-bold">
         Get an invite when the sanctuary opens
       </label>

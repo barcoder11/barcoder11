@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import {
   ageCareActions,
   anonClient,
+  serviceClient,
   createUser,
   dbTestsEnabled,
   pool,
@@ -308,38 +309,59 @@ describe.skipIf(!dbTestsEnabled)("shop and sanctuary", () => {
 });
 
 describe.skipIf(!dbTestsEnabled)("attribution", () => {
-  it("accepts landing views from visitors, dedupes them, and rejects server-only events", async () => {
-    const db = anonClient();
-    const anon = uuid();
-    const args = {
+  const track = (args: Record<string, unknown>) =>
+    serviceClient().rpc("track_event", {
       p_event_type: "rescue_landing_viewed",
-      p_anonymous_id: anon,
+      p_anonymous_id: null,
+      p_user_id: null,
       p_rescue_slug: "maple-flood-rescue",
       p_animal_slug: null,
+      p_attribution: {},
+      p_client_key: `test:${uuid()}`,
+      ...args,
+    });
+
+  it("can't be written through the public API (server only)", async () => {
+    const r = await anonClient().rpc("track_event", {
+      p_event_type: "rescue_landing_viewed", p_anonymous_id: uuid(), p_user_id: null, p_rescue_slug: "maple-flood-rescue",
+      p_animal_slug: null, p_attribution: {}, p_client_key: "x",
+    });
+    expect(r.error).not.toBeNull();
+    const player = await createUser();
+    const r2 = await player.db.rpc("track_event", {
+      p_event_type: "rescue_landing_viewed", p_anonymous_id: uuid(), p_user_id: player.id, p_rescue_slug: null,
+      p_animal_slug: null, p_attribution: {}, p_client_key: "x",
+    });
+    expect(r2.error).not.toBeNull();
+  });
+
+  it("records landing views, dedupes them, sanitises UTM values and rejects other event types", async () => {
+    const anon = uuid();
+    const args = {
+      p_anonymous_id: anon,
       p_attribution: { source: "Instagram", medium: "reel", campaign: "maple_launch<script>", content: "reel_001" },
     };
-    expect((await db.rpc("track_event", args)).error).toBeNull();
-    expect((await db.rpc("track_event", args)).error).toBeNull();
-    const { rows } = await pool.query(
-      `select source, campaign from public.attribution_events where anonymous_id = $1`,
-      [anon],
-    );
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toEqual({ source: "instagram", campaign: "maple_launchscript" });
+    expect((await track(args)).data).toBe(true);
+    expect((await track(args)).data).toBe(true);
+    const { rows } = await pool.query(`select source, campaign from public.attribution_events where anonymous_id = $1`, [anon]);
+    expect(rows).toEqual([{ source: "instagram", campaign: "maple_launchscript" }]);
+    expect((await track({ ...args, p_event_type: "animal_adopted" })).error).not.toBeNull();
+  });
 
-    const bad = await db.rpc("track_event", { ...args, p_event_type: "animal_adopted" });
-    expect(bad.error).not.toBeNull();
+  it("rate limits floods from one client", async () => {
+    const key = `test:${uuid()}`;
+    const results: boolean[] = [];
+    for (let i = 0; i < 122; i++) {
+      const { data } = await track({ p_anonymous_id: uuid(), p_client_key: key });
+      results.push(data === true);
+    }
+    expect(results.slice(0, 120).every(Boolean)).toBe(true);
+    expect(results.slice(120)).toEqual([false, false]);
   });
 
   it("links a visitor's funnel to their account and keeps first touch", async () => {
     const anon = uuid();
-    await anonClient().rpc("track_event", {
-      p_event_type: "adoption_cta_clicked",
-      p_anonymous_id: anon,
-      p_rescue_slug: "maple-flood-rescue",
-      p_animal_slug: null,
-      p_attribution: { source: "tiktok" },
-    });
+    await track({ p_event_type: "adoption_cta_clicked", p_anonymous_id: anon, p_attribution: { source: "tiktok" } });
     const u = await createUser({ onboard: false });
     await u.db.rpc("record_signup", {
       p_anonymous_id: anon,

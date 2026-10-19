@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { completeOnboarding, newEmail, setLaunchMode, signInWithCode } from "./helpers";
+import { completeOnboarding, newEmail, pool, setLaunchMode, signInWithCode } from "./helpers";
 
 test("owner email in ADMIN_EMAILS becomes admin on first sign-in (no SQL needed)", async ({ page }) => {
   await page.goto("/auth?next=/admin");
@@ -48,4 +48,29 @@ test("social preview images, app icons and the web manifest are served", async (
   const manifest = await request.get("/manifest.webmanifest");
   expect(manifest.status()).toBe(200);
   expect(await manifest.json()).toMatchObject({ name: "Pawtopia", display: "standalone", start_url: "/app" });
+});
+
+test("landing visits are recorded through the server; the maintenance job requires its secret", async ({ page, context, request }) => {
+  await page.goto("/r/maple-flood-rescue?utm_source=facebook&utm_campaign=e2e_track");
+  await expect(page.getByTestId("animal-name")).toHaveText("Maple");
+  const visitor = (await context.cookies()).find((c) => c.name === "pt_aid")?.value;
+  expect(visitor).toBeTruthy();
+  await expect
+    .poll(async () => {
+      const { rows } = await pool.query(
+        `select count(*)::int n from public.attribution_events
+          where anonymous_id = $1 and event_type = 'rescue_landing_viewed' and source = 'facebook' and campaign = 'e2e_track'`,
+        [visitor],
+      );
+      return rows[0].n;
+    })
+    .toBe(1);
+
+  expect((await request.get("/api/cron/maintenance")).status()).toBe(401);
+  expect((await request.get("/api/cron/maintenance", { headers: { authorization: "Bearer wrong" } })).status()).toBe(401);
+  const ok = await request.get("/api/cron/maintenance", {
+    headers: { authorization: `Bearer ${process.env.E2E_CRON_SECRET ?? "local-cron-secret"}` },
+  });
+  expect(ok.status()).toBe(200);
+  expect(await ok.json()).toMatchObject({ ok: true });
 });

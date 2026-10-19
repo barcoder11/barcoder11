@@ -16,7 +16,7 @@ export default async function WaitlistPage() {
             <p className="text-ink-soft">Good news — the sanctuary is open right now! You can start playing straight away.</p>
             <ButtonLink href="/auth">Start playing</ButtonLink>
             <p className="text-sm text-ink-soft">Prefer news only? You can still join the list below.</p>
-            <WaitlistForm source={{ source: "waitlist_page" }} />
+            <WaitlistForm context="waitlist_page" />
           </div>
         ) : (
           <div className="mt-4 grid gap-4">
@@ -24,7 +24,7 @@ export default async function WaitlistPage() {
               The sanctuary isn&apos;t open yet. Leave your email and we&apos;ll send an invite as soon as you can adopt.
               The waitlist is separate from game accounts, and we only keep what we need.
             </p>
-            <WaitlistForm source={{ source: "waitlist_page" }} />
+            <WaitlistForm context="waitlist_page" />
           </div>
         )}
         <FictionDisclosure className="mt-6" compact />

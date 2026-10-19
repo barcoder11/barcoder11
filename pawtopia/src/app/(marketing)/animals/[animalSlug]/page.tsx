@@ -72,7 +72,7 @@ export default async function AnimalPage({ params }: PageProps<"/animals/[animal
             ) : launch.mode === "open" || isEditor ? (
               <AdoptCta href={`/animals/${animal.slug}/adopt`} label={`Virtually adopt ${animal.name} — Free`} animalSlug={animal.slug} />
             ) : (
-              <WaitlistForm source={{ source: "animal_page" }} />
+              <WaitlistForm context="animal_page" />
             )}
           </div>
 

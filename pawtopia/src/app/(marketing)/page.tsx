@@ -39,7 +39,7 @@ export default async function LandingPage() {
               </>
             ) : (
               <div className="w-full max-w-md">
-                <WaitlistForm source={{ source: "landing" }} />
+                <WaitlistForm context="landing" />
               </div>
             )}
           </div>
