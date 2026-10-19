@@ -8,7 +8,7 @@ import { FormAlert, FormField } from "./form-field";
 
 const LINK_ERRORS: Record<string, string> = {
   link_expired: "That link has expired. Log in to get a new one, or reset your password.",
-  link_invalid: "That link didn't work. It may have already been used.",
+  link_invalid: "That link didn't work here. It may have been used already or opened in a different browser. If you were confirming your email, try logging in. It's probably already confirmed!",
   not_configured: "Accounts aren't connected yet.",
 };
 

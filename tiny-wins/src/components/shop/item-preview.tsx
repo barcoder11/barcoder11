@@ -11,9 +11,9 @@ export function ItemPreview({ itemId, slot, className }: { itemId: string; slot:
   const w = surface ? 120 : box.w;
   const h = surface ? 120 : box.h;
   const pad = surface ? 0 : Math.max(w, h) * 0.12;
-  const size = Math.max(w, h) + pad * 2;
-  const vx = -(size - w) / 2;
-  const vy = -(size - h) / 2;
+  const size = Math.round((Math.max(w, h) + pad * 2) * 100) / 100;
+  const vx = Math.round((-(size - w) / 2) * 100) / 100;
+  const vy = Math.round((-(size - h) / 2) * 100) / 100;
   return (
     <svg viewBox={`${vx} ${vy} ${size} ${size}`} className={cn("h-full w-full", className)} aria-hidden>
       <defs>

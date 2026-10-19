@@ -29,7 +29,11 @@ export function ShopView({ items, owned, layout, acorns, level }: Props) {
   const ownedSet = new Set(owned);
   const placed = new Set(Object.values(layout));
 
-  const shown = items.filter((i) => !i.is_starter && (category === "all" || i.category === category));
+  // Buyable first (cheapest first), then owned, then locked by level.
+  const rank = (i: ShopItem) => (ownedSet.has(i.id) ? 1 : i.unlock_level > level ? 2 : 0);
+  const shown = items
+    .filter((i) => !i.is_starter && (category === "all" || i.category === category))
+    .sort((a, b) => rank(a) - rank(b) || a.unlock_level - b.unlock_level || a.price - b.price);
 
   function buy(item: ShopItem) {
     startTransition(async () => {

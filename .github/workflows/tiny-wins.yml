@@ -1,0 +1,45 @@
+name: Tiny Wins
+
+on:
+  push:
+    paths: ["tiny-wins/**", ".github/workflows/tiny-wins.yml"]
+  pull_request:
+    paths: ["tiny-wins/**", ".github/workflows/tiny-wins.yml"]
+
+defaults:
+  run:
+    working-directory: tiny-wins
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tinywins_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tiny-wins/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run test:db
+        env:
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/tinywins_test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Public E2E tests
+        run: |
+          npx next start -p 3100 &
+          npx wait-on http://localhost:3100 --timeout 60000
+          npx playwright test tests/e2e/public.spec.ts

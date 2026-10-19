@@ -1,0 +1,12 @@
+<!-- Supabase → Authentication → Email Templates → "Reset password"
+     Subject: Reset your Tiny Wins password -->
+<div style="font-family:Nunito,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#FFFDF8;border-radius:24px;color:#2F2A24;text-align:center">
+  <div style="font-size:40px">🔑</div>
+  <h1 style="font-size:24px;margin:8px 0">Reset your password</h1>
+  <p style="font-size:16px;line-height:1.5">Tap below to choose a new password for Tiny Wins.</p>
+  <p style="margin:28px 0">
+    <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password"
+       style="background:#397A69;color:#FFFDF8;text-decoration:none;font-weight:800;padding:14px 28px;border-radius:999px;display:inline-block">Choose a new password</a>
+  </p>
+  <p style="font-size:13px;color:#6E6558">Didn't ask for this? You can ignore this email. Your password won't change.</p>
+</div>

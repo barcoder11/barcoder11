@@ -13,6 +13,9 @@ import type { JSX } from "react";
 type ArtProps = { w: number; h: number };
 export type ItemArt = ((p: ArtProps) => JSX.Element) | string;
 
+/** Round so server and browser render identical numbers (avoids hydration diffs). */
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
 const Shadow = ({ w, h, inset = 4 }: ArtProps & { inset?: number }) => (
   <ellipse cx={w / 2} cy={h - 2} rx={w / 2 - inset} ry={4} fill="#000" opacity={0.14} />
 );
@@ -215,8 +218,8 @@ export const ITEM_ART: Record<string, ItemArt> = {
       <path d={`M0 6 Q${w / 4} 26 ${w / 2} 8 T${w} 6`} stroke="#5B3726" strokeWidth={1.5} fill="none" />
       {Array.from({ length: 13 }, (_, i) => {
         const t = i / 12;
-        const x = t * w;
-        const y = 6 + Math.sin(t * Math.PI * 2) * 9 + 4;
+        const x = r2(t * w);
+        const y = r2(6 + Math.sin(t * Math.PI * 2) * 9 + 4);
         return <circle key={i} className="tw-twinkle" style={{ animationDelay: `${i * 0.2}s` }} cx={x} cy={y + 3} r={3.4} fill={["#F4C34D", "#F49AC2", "#9BE0D6"][i % 3]} />;
       })}
     </g>
@@ -225,7 +228,7 @@ export const ITEM_ART: Record<string, ItemArt> = {
     <g>
       <path d={`M0 4 Q${w / 2} 16 ${w} 4`} stroke="#5B3726" strokeWidth={1.5} fill="none" />
       {[0.18, 0.5, 0.82].map((t) => (
-        <g key={t} transform={`translate(${t * w} ${8 + Math.sin(t * Math.PI) * 5})`}>
+        <g key={t} transform={`translate(${r2(t * w)} ${r2(8 + Math.sin(t * Math.PI) * 5)})`}>
           <line y2={6} stroke="#5B3726" />
           <ellipse cy={18} rx={11} ry={13} fill="#F4C779" />
           <ellipse cy={18} rx={6} ry={13} fill="#F9DDA2" opacity={0.7} />
