@@ -60,6 +60,15 @@ filename order, in the SQL editor (or `npx supabase db push`). The three added o
    | `SMTP_*`, `EMAIL_FROM`          | optional | Waitlist confirmation emails                                     |
 
 3. Deploy, then add your domain and update `NEXT_PUBLIC_SITE_URL` + Supabase Site URL.
+4. **Redeploy after changing any environment variable** (Deployments → latest → ⋯ →
+   Redeploy). Settings are read when the site is built: the `NEXT_PUBLIC_*` values are
+   compiled into the pages, and the Supabase URL also tells the image optimizer which
+   host to accept. Connecting Supabase to the already-deployed project takes effect only
+   after a redeploy.
+
+Uploaded art goes through Vercel's image optimizer, which has a monthly allowance on every
+plan. Each animal has a few images and each resized copy is cached for 31 days, so usage
+stays small; **Vercel → Usage → Image Optimization** shows it.
 
 ### Daily retention job
 
