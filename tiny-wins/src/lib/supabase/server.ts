@@ -12,8 +12,9 @@ export class SupabaseNotConfiguredError extends Error {
 
 /** Server client acting as the signed-in user (Server Components, Actions, Route Handlers). */
 export async function createClient() {
-  if (!isSupabaseConfigured) throw new SupabaseNotConfiguredError();
+  // Read cookies first so this is always treated as request-time work.
   const cookieStore = await cookies();
+  if (!isSupabaseConfigured) throw new SupabaseNotConfiguredError();
 
   return createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     cookies: {
