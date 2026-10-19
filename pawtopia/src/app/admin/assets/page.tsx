@@ -5,12 +5,16 @@ import { Card } from "@/components/ui";
 import { deleteAsset, setAssetActive, updateAssetText } from "../actions";
 import { createClient } from "@/lib/supabase/server";
 import type { AnimalAsset } from "@/lib/types";
+import { many } from "@/lib/data/db";
 
 type AssetRow = AnimalAsset & { animals: { id: string; name: string; slug: string } | null };
 
 export default async function AdminAssets() {
   const supabase = await createClient();
-  const { data } = await supabase.from("animal_assets").select("*, animals(id, name, slug)").order("created_at", { ascending: false }).limit(200);
+  const data = many<AssetRow>(
+    await supabase.from("animal_assets").select("*, animals(id, name, slug)").order("created_at", { ascending: false }).limit(200),
+    "admin assets",
+  );
   return (
     <div className="grid gap-4">
       <h1 className="font-display text-3xl font-bold">Asset library</h1>
@@ -18,7 +22,7 @@ export default async function AdminAssets() {
         Upload new art from each animal&apos;s page. Allowed: PNG, WebP, JPEG, GIF (≤10 MB) and MP4/WebM (≤50 MB). SVG is blocked for safety.
       </p>
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {((data ?? []) as AssetRow[]).map((a) => (
+        {data.map((a) => (
           <li key={a.id}>
             <Card className={`grid gap-2 p-3 ${a.is_active ? "" : "opacity-70"}`}>
               <div className="grid aspect-video place-items-center overflow-hidden rounded-xl bg-sage">
@@ -44,7 +48,7 @@ export default async function AdminAssets() {
           </li>
         ))}
       </ul>
-      {(data ?? []).length === 0 && <p className="text-ink-soft">No uploads yet — every animal currently uses placeholder art.</p>}
+      {data.length === 0 && <p className="text-ink-soft">No uploads yet — every animal currently uses placeholder art.</p>}
     </div>
   );
 }

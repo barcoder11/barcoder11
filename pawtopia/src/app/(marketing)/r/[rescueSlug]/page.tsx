@@ -9,7 +9,7 @@ import { TrackView } from "@/components/marketing/TrackView";
 import { WaitlistForm } from "@/components/marketing/WaitlistForm";
 import { ButtonLink, FictionDisclosure, Notice, Pill } from "@/components/ui";
 import { getIsEditor } from "@/lib/auth";
-import { getMyAdoptionId } from "@/lib/data/adoption-status";
+import { getMyAdoptionId } from "@/lib/data/player";
 import { assetMap, getChapterOutline, getLaunchSettings, getRescueBySlug } from "@/lib/data/catalog";
 
 export async function generateMetadata({ params }: PageProps<"/r/[rescueSlug]">): Promise<Metadata> {

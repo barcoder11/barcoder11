@@ -57,3 +57,13 @@ describe("game helpers", () => {
     expect(reactionText("snack", "Pip", 4)).toContain("Pip");
   });
 });
+
+describe("personalize", () => {
+  it("replaces whole words only", async () => {
+    const { personalize } = await import("./game");
+    expect(personalize("Acorn found an acorn. Acorns? Acorn!", "Acorn", "Pip")).toBe("Pip found an acorn. Acorns? Pip!");
+    expect(personalize("Maple smiles.", "Maple", "Maple")).toBe("Maple smiles.");
+    // Regex characters in names are literal: "Mr.Pip" must not match "MrXPip".
+    expect(personalize("Mr.Pip naps. MrXPip naps.", "Mr.Pip", "Bo")).toBe("Bo naps. MrXPip naps.");
+  });
+});

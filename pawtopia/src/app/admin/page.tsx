@@ -5,10 +5,11 @@ import { updateEconomy, updateLaunchSettings } from "./actions";
 import { getIsAdmin } from "@/lib/auth";
 import { getEconomy, getLaunchSettings } from "@/lib/data/catalog";
 import { createClient } from "@/lib/supabase/server";
+import { many, one } from "@/lib/data/db";
 
 export default async function AdminOverview() {
   const supabase = await createClient();
-  const [{ data: overview }, launch, economy, isAdmin, { data: animals }, { data: audit }] = await Promise.all([
+  const [overviewResult, launch, economy, isAdmin, animalsResult, auditResult] = await Promise.all([
     supabase.rpc("admin_overview"),
     getLaunchSettings(),
     getEconomy(),
@@ -16,7 +17,10 @@ export default async function AdminOverview() {
     supabase.from("animals").select("slug, name, status").order("sort_order"),
     supabase.from("admin_audit_logs").select("id, action, entity_type, entity_id, created_at").order("created_at", { ascending: false }).limit(12),
   ]);
-  const o = (overview ?? {}) as Record<string, number>;
+  const o = (one(overviewResult, "admin overview") ?? {}) as Record<string, number>;
+  const animals = many<{ slug: string; name: string; status: string }>(animalsResult, "animals");
+  // Audit rows are admin-only (RLS returns none to editors).
+  const audit = many<{ id: string; action: string; entity_type: string; entity_id: string | null; created_at: string }>(auditResult, "audit log");
   const stats = [
     ["Players", o.players],
     ["Adoptions", o.adoptions],
@@ -64,7 +68,7 @@ export default async function AdminOverview() {
               <Field label="Featured animal (landing page hero)">
                 <select name="featured_animal_slug" defaultValue={launch.featured_animal_slug ?? ""} className={adminInput}>
                   <option value="">Automatic</option>
-                  {(animals ?? []).map((a) => (
+                  {animals.map((a) => (
                     <option key={a.slug} value={a.slug}>{a.name} ({a.status})</option>
                   ))}
                 </select>
@@ -97,7 +101,7 @@ export default async function AdminOverview() {
       <Card>
         <h2 className="mb-3 font-display text-xl font-bold">Recent admin activity</h2>
         <ul className="grid gap-1 text-sm">
-          {(audit ?? []).map((a) => (
+          {audit.map((a) => (
             <li key={a.id} className="flex flex-wrap gap-2 rounded-lg px-2 py-1 odd:bg-cream">
               <span className="font-mono text-xs text-ink-soft">{new Date(a.created_at).toLocaleString()}</span>
               <span className="font-bold">{a.action}</span>
@@ -105,7 +109,7 @@ export default async function AdminOverview() {
               <span className="truncate font-mono text-xs text-ink-soft">{a.entity_id}</span>
             </li>
           ))}
-          {(audit ?? []).length === 0 && <li className="text-ink-soft">No changes yet.</li>}
+          {audit.length === 0 && <li className="text-ink-soft">No changes yet.</li>}
         </ul>
       </Card>
     </div>

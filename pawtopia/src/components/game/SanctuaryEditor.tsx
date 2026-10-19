@@ -5,6 +5,7 @@ import { AnimalArt } from "@/components/art/AnimalArt";
 import { DecorArt } from "@/components/art/DecorArt";
 import { placeDecor, removeDecor, renameSanctuary } from "@/app/app/actions";
 import { Button, buttonClass, Notice } from "@/components/ui";
+import { OFFLINE_MESSAGE, tryAction } from "@/lib/safe-action";
 import { Stage, slotStyle } from "./Stage";
 import type { Animal, AnimalAsset, AssetState, Decor, HabitatSlot, Placement } from "@/lib/types";
 
@@ -39,9 +40,11 @@ export function SanctuaryEditor(props: {
 
   async function choose(slot: HabitatSlot, slug: string | null) {
     setPending(true);
-    const res = slug ? await placeDecor(slot.id, slug) : await removeDecor(slot.id);
+    const res = await tryAction(() => (slug ? placeDecor(slot.id, slug) : removeDecor(slot.id)));
     setPending(false);
-    if (res.placements) {
+    if (!res) {
+      setMessage({ tone: "error", text: OFFLINE_MESSAGE });
+    } else if (res.placements) {
       setPlacements(res.placements);
       setMessage({ tone: "success", text: slug ? `Placed ${props.decorBySlug[slug]?.name ?? "item"} — saved!` : "Removed — saved!" });
       setActiveSlot(null);
@@ -60,8 +63,10 @@ export function SanctuaryEditor(props: {
             className="flex items-center gap-2"
             onSubmit={async (e) => {
               e.preventDefault();
-              const res = await renameSanctuary(name);
-              if (res.status === "ok") setRenaming(false);
+              const res = await tryAction(() => renameSanctuary(name));
+              if (!res) setMessage({ tone: "error", text: OFFLINE_MESSAGE });
+              else if (res.status === "ok") setRenaming(false);
+              else setMessage({ tone: "error", text: "Sanctuary names can be 1–40 characters." });
             }}
           >
             <label htmlFor="sanctuary-name" className="sr-only">Sanctuary name</label>
@@ -128,7 +133,7 @@ export function SanctuaryEditor(props: {
 
       {/* Slot picker (bottom sheet) */}
       {editing && activeSlot && (
-        <div className="slide-up rounded-[1.75rem] bg-white p-4 shadow-soft ring-1 ring-ink/5" role="dialog" aria-label={`Choose an item for ${activeSlot.label}`}>
+        <div className="slide-up rounded-[1.75rem] bg-white p-4 shadow-soft ring-1 ring-ink/5" role="region" aria-label={`Choose an item for ${activeSlot.label}`}>
           <div className="mb-3 flex items-center justify-between">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-widest text-terracotta">{CATEGORY_LABEL[activeSlot.category]}</p>

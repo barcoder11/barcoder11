@@ -2,9 +2,13 @@
 import { useActionState } from "react";
 import { adoptAction, type AdoptState } from "./actions";
 import { Button, Input, Label, Notice } from "@/components/ui";
+import { guardAction, OFFLINE_MESSAGE } from "@/lib/safe-action";
 
 export function AdoptForm({ slug, name }: { slug: string; name: string }) {
-  const [state, action, pending] = useActionState<AdoptState, FormData>(adoptAction, {});
+  const [state, action, pending] = useActionState<AdoptState, FormData>(
+    guardAction(adoptAction, () => ({ error: OFFLINE_MESSAGE })),
+    {},
+  );
   return (
     <form action={action} className="grid gap-4">
       <input type="hidden" name="slug" value={slug} />

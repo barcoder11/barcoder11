@@ -3,12 +3,16 @@ import Link from "next/link";
 import { useActionState, useSyncExternalStore } from "react";
 import { completeOnboarding, type OnboardingState } from "./actions";
 import { Button, Input, Label, Notice } from "@/components/ui";
+import { guardAction, OFFLINE_MESSAGE } from "@/lib/safe-action";
 
 const subscribe = () => () => {};
 const getTimezone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
 export function OnboardingForm({ next }: { next: string }) {
-  const [state, action, pending] = useActionState<OnboardingState, FormData>(completeOnboarding, {});
+  const [state, action, pending] = useActionState<OnboardingState, FormData>(
+    guardAction(completeOnboarding, () => ({ error: OFFLINE_MESSAGE })),
+    {},
+  );
   const timezone = useSyncExternalStore(subscribe, getTimezone, () => "UTC");
 
   return (

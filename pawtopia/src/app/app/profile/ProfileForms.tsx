@@ -2,9 +2,13 @@
 import { useActionState } from "react";
 import { deleteAccount, saveProfile, type DeleteState, type ProfileState } from "@/app/app/actions";
 import { Button, Input, Label, Notice } from "@/components/ui";
+import { guardAction, OFFLINE_MESSAGE } from "@/lib/safe-action";
 
 export function ProfileForm(props: { displayName: string; timezone: string; marketing: boolean; reducedMotion: boolean; timezones: string[] }) {
-  const [state, action, pending] = useActionState<ProfileState, FormData>(saveProfile, {});
+  const [state, action, pending] = useActionState<ProfileState, FormData>(
+    guardAction(saveProfile, () => ({ status: "error", message: OFFLINE_MESSAGE })),
+    {},
+  );
   return (
     <form action={action} className="grid gap-4">
       <div>
@@ -34,7 +38,10 @@ export function ProfileForm(props: { displayName: string; timezone: string; mark
 }
 
 export function DeleteAccountForm() {
-  const [state, action, pending] = useActionState<DeleteState, FormData>(deleteAccount, {});
+  const [state, action, pending] = useActionState<DeleteState, FormData>(
+    guardAction(deleteAccount, () => ({ error: OFFLINE_MESSAGE })),
+    {},
+  );
   return (
     <form action={action} className="grid gap-3">
       <p className="text-sm text-ink-soft">

@@ -16,7 +16,6 @@ alter default privileges in schema public grant all on sequences to anon, authen
 delete from auth.users;
 drop trigger if exists on_auth_user_created on auth.users;
 SQL
-if [ -f "$HERE/storage-shim.sql" ] && [ "${REAL_STORAGE:-0}" != 1 ]; then $PSQL -f "$HERE/storage-shim.sql"; fi
 for f in "$APP"/supabase/migrations/*.sql; do echo "migrate: $(basename "$f")"; $PSQL -f "$f"; done
 $PSQL -f "$APP/supabase/seed.sql"
 $PSQL -c "notify pgrst, 'reload schema'"

@@ -7,15 +7,15 @@ const ITEMS = [
   { href: "/admin/animals", label: "Animals" },
   { href: "/admin/rescues", label: "Rescues & links" },
   { href: "/admin/assets", label: "Assets" },
-  { href: "/admin/analytics", label: "Analytics" },
+  { href: "/admin/analytics", label: "Analytics", adminOnly: true },
 ];
 
-export function AdminNav() {
+export function AdminNav({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
   return (
     <nav aria-label="Admin" className="-mx-4 overflow-x-auto px-4 no-scrollbar">
       <ul className="flex gap-1">
-        {ITEMS.map((i) => {
+        {ITEMS.filter((i) => isAdmin || !("adminOnly" in i)).map((i) => {
           const active = i.href === "/admin" ? pathname === "/admin" : pathname.startsWith(i.href);
           return (
             <li key={i.href}>

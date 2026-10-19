@@ -2,10 +2,14 @@
 import { useActionState } from "react";
 import { joinWaitlist, type WaitlistState } from "@/app/(marketing)/waitlist/actions";
 import { Button, Input, Notice } from "@/components/ui";
+import { guardAction, OFFLINE_MESSAGE } from "@/lib/safe-action";
 
 /** `context` records which page the form was on (e.g. "rescue_page") for the funnel. */
 export function WaitlistForm({ context }: { context: string }) {
-  const [state, action, pending] = useActionState<WaitlistState, FormData>(joinWaitlist, { status: "idle" });
+  const [state, action, pending] = useActionState<WaitlistState, FormData>(
+    guardAction(joinWaitlist, () => ({ status: "error", message: OFFLINE_MESSAGE })),
+    { status: "idle" },
+  );
   if (state.status === "ok") {
     return (
       <Notice tone="success" className="pop-in text-base">

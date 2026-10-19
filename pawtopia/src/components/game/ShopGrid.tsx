@@ -4,6 +4,7 @@ import { useState } from "react";
 import { DecorArt } from "@/components/art/DecorArt";
 import { buyDecor, type ShopResult } from "@/app/app/actions";
 import { AcornIcon, Button, Notice } from "@/components/ui";
+import { tryAction } from "@/lib/safe-action";
 import { useGameState } from "./GameState";
 import type { Decor } from "@/lib/types";
 
@@ -19,12 +20,9 @@ export function ShopGrid({ items, owned }: { items: Decor[]; owned: string[] }) 
     if (buying) return;
     setBuying(item.slug);
     const key = crypto.randomUUID();
-    let res: ShopResult;
-    try {
-      res = await buyDecor(item.slug, key);
-    } catch {
-      res = await buyDecor(item.slug, key).catch((): ShopResult => ({ status: "error" }));
-    }
+    // On a network hiccup, retry once with the same key (idempotent: never charges twice).
+    const res: ShopResult =
+      (await tryAction(() => buyDecor(item.slug, key))) ?? (await tryAction(() => buyDecor(item.slug, key))) ?? { status: "error" };
     setBuying(null);
     if (typeof res.balance === "number") setBalance(res.balance);
     if (res.status === "purchased" || res.status === "replay") {

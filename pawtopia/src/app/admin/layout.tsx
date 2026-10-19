@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Logo } from "@/components/ui";
-import { requireEditor } from "@/lib/auth";
+import { getIsAdmin, requireEditor } from "@/lib/auth";
 
 export const metadata = { title: "Creator admin", robots: { index: false } };
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await requireEditor("/admin");
+  const isAdmin = await getIsAdmin();
   return (
     <div className="min-h-dvh bg-cream">
       <header className="border-b border-ink/10 bg-white">
@@ -18,7 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link href="/app" className="text-sm font-bold text-forest hover:underline">Back to game →</Link>
         </div>
         <div className="mx-auto max-w-6xl px-4 pb-2">
-          <AdminNav />
+          <AdminNav isAdmin={isAdmin} />
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>

@@ -4,9 +4,10 @@ import { AnimalArt } from "@/components/art/AnimalArt";
 import { ButtonLink, Card } from "@/components/ui";
 import { assetMap, getChapterOutline } from "@/lib/data/catalog";
 import { getUnlockedChapters, listAdoptions } from "@/lib/data/player";
-import { PHASES } from "@/lib/game";
+import { personalize, PHASES } from "@/lib/game";
 
 export const metadata: Metadata = { title: "Stories" };
+
 
 export default async function StoriesPage() {
   const [adoptions, unlocked] = await Promise.all([listAdoptions(), getUnlockedChapters()]);
@@ -82,7 +83,7 @@ export default async function StoriesPage() {
                     </p>
                     <h3 className="mt-1 font-display text-xl font-bold">{chapter.title}</h3>
                     <p className="mt-2 whitespace-pre-line leading-relaxed text-ink-soft">
-                      {chapter.body.replaceAll(animal.name, name)}
+                      {personalize(chapter.body, animal.name, name)}
                     </p>
                   </article>
                 ) : (

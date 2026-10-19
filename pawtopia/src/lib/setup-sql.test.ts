@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-// @ts-expect-error -- plain ESM script without type declarations
 import { bundle } from "../../scripts/bundle-sql.mjs";
 
 describe("supabase/setup.sql", () => {

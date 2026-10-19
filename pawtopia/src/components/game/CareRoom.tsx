@@ -4,10 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimalArt, PlaceholderBadge } from "@/components/art/AnimalArt";
 import type { PetState } from "@/components/art/Critter";
 import { performCare, renameAdoption } from "@/app/app/actions";
+import { Modal as Dialog } from "@/components/Modal";
 import { buttonClass } from "@/components/ui";
 import { useGameState } from "./GameState";
 import { Stage } from "./Stage";
 import { CARE_ACTIONS, levelProgress, phaseLabel, reactionText } from "@/lib/game";
+import { OFFLINE_MESSAGE, tryAction } from "@/lib/safe-action";
 import type {
   Animal, AnimalAsset, AssetState, CareAction, CareResult, ChapterOutline, Decor, Economy, HabitatSlot, Placement, RecoveryPhase,
 } from "@/lib/types";
@@ -61,9 +63,19 @@ export function CareRoom(props: {
 
   useEffect(() => {
     offset.current = props.serverNow - Date.now();
+    setNow(Date.now() + offset.current);
+  }, [props.serverNow]);
+
+  // Tick only while at least one cooldown is running (avoids needless re-renders).
+  const coolingDown = CARE_ACTIONS.some(({ id }) => {
+    const last = lastTimes[id];
+    return last ? new Date(last).getTime() + economy.actions[id].cooldown_seconds * 1000 > now : false;
+  });
+  useEffect(() => {
+    if (!coolingDown) return;
     const t = setInterval(() => setNow(Date.now() + offset.current), 500);
     return () => clearInterval(t);
-  }, [props.serverNow]);
+  }, [coolingDown]);
 
   const progress = levelProgress(xp, economy.level_thresholds);
   const nextChapter = useMemo(() => outline.find((c) => c.unlock_bond_xp > xp), [outline, xp]);
@@ -93,17 +105,10 @@ export function CareRoom(props: {
     clearTimeout(petTimer.current);
     setPet(STATE_FOR[action]);
     const key = crypto.randomUUID();
-    let result: CareResult;
-    try {
-      result = await performCare(props.adoption.id, action, key);
-    } catch {
-      // Network hiccup: retry once with the same key (idempotent, never double-rewards).
-      try {
-        result = await performCare(props.adoption.id, action, key);
-      } catch {
-        result = { status: "error" };
-      }
-    }
+    // On a network hiccup, retry once with the same key (idempotent: never double-rewards).
+    const result: CareResult =
+      (await tryAction(() => performCare(props.adoption.id, action, key))) ??
+      (await tryAction(() => performCare(props.adoption.id, action, key))) ?? { status: "error" };
     setBusy(null);
 
     if (result.status === "ok" || result.status === "replay") {
@@ -123,13 +128,16 @@ export function CareRoom(props: {
           setReaction((r) => `${r} (Today's bond rewards are complete — come back tomorrow for more.)`);
         }
       }
-      const nextDone = new Set(done).add(action);
-      setDone(nextDone);
-      if (showTutorial && TUTORIAL.every((a) => nextDone.has(a))) setShowTutorial(false);
-      pendingModals.current = [
+      setDone((prev) => {
+        const nextDone = new Set(prev).add(action);
+        if (TUTORIAL.every((a) => nextDone.has(a))) setShowTutorial(false);
+        return nextDone;
+      });
+      // Queue (never replace) popups, so a quick second tap can't swallow an unlock or gift.
+      pendingModals.current.push(
         ...(result.unlocked_chapters ?? []).map((c) => ({ kind: "chapter" as const, chapter: c })),
         ...(result.gift ? [{ kind: "gift" as const, name: result.gift.name }] : []),
-      ];
+      );
       petTimer.current = setTimeout(
         () => {
           setPet("idle");
@@ -312,48 +320,45 @@ export function CareRoom(props: {
       </div>
       {shareNote && <p className="text-sm font-bold text-forest" role="status">{shareNote}</p>}
 
-      {/* ---------------------------------------------------- modals */}
-      {modal && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-          <div className="pop-in w-full max-w-sm rounded-[2rem] bg-cream p-6 text-center shadow-2xl">
-            {modal.kind === "chapter" ? (
-              <>
-                <div className="text-5xl" aria-hidden="true">📖</div>
-                <p className="mt-2 text-xs font-extrabold uppercase tracking-widest text-terracotta">New chapter unlocked</p>
-                <h2 id="modal-title" className="mt-1 font-display text-2xl font-bold">
-                  Chapter {modal.chapter.ordinal}: {modal.chapter.title}
-                </h2>
-                <p className="mt-2 text-ink-soft">{displayName} has entered a new phase: {phaseLabel(modal.chapter.phase)}.</p>
-                <div className="mt-5 grid gap-2">
-                  <Link href={`/app/stories#chapter-${adoption.id}-${modal.chapter.ordinal}`} className={buttonClass("primary", "md")}>
-                    Read the chapter
-                  </Link>
-                  <button className={buttonClass("ghost", "md")} onClick={showNextModal} autoFocus>
-                    Keep playing
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="text-5xl" aria-hidden="true">🎁</div>
-                <p className="mt-2 text-xs font-extrabold uppercase tracking-widest text-terracotta">First-care gift</p>
-                <h2 id="modal-title" className="mt-1 font-display text-2xl font-bold">You earned a {modal.name}!</h2>
-                <p className="mt-2 text-ink-soft">
-                  {displayName} would love it in the sanctuary. Place it now, or keep caring and decorate later.
-                </p>
-                <div className="mt-5 grid gap-2">
-                  <Link href="/app/sanctuary" className={buttonClass("primary", "md")} data-testid="gift-place">
-                    Place it in my sanctuary
-                  </Link>
-                  <button className={buttonClass("ghost", "md")} onClick={showNextModal} autoFocus>
-                    Later
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      {/* ---------------------------------------------------- popups (chapter unlocks, gifts) */}
+      <Dialog open={modal !== null} onClose={showNextModal} labelledBy="room-dialog-title" className="text-center">
+        {modal?.kind === "chapter" && (
+          <>
+            <div className="text-5xl" aria-hidden="true">📖</div>
+            <p className="mt-2 text-xs font-extrabold uppercase tracking-widest text-terracotta">New chapter unlocked</p>
+            <h2 id="room-dialog-title" className="mt-1 font-display text-2xl font-bold">
+              Chapter {modal.chapter.ordinal}: {modal.chapter.title}
+            </h2>
+            <p className="mt-2 text-ink-soft">{displayName} has entered a new phase: {phaseLabel(modal.chapter.phase)}.</p>
+            <div className="mt-5 grid gap-2">
+              <Link href={`/app/stories#chapter-${adoption.id}-${modal.chapter.ordinal}`} className={buttonClass("primary", "md")}>
+                Read the chapter
+              </Link>
+              <button type="button" className={buttonClass("ghost", "md")} onClick={showNextModal} data-autofocus>
+                Keep playing
+              </button>
+            </div>
+          </>
+        )}
+        {modal?.kind === "gift" && (
+          <>
+            <div className="text-5xl" aria-hidden="true">🎁</div>
+            <p className="mt-2 text-xs font-extrabold uppercase tracking-widest text-terracotta">First-care gift</p>
+            <h2 id="room-dialog-title" className="mt-1 font-display text-2xl font-bold">You earned a {modal.name}!</h2>
+            <p className="mt-2 text-ink-soft">
+              {displayName} would love it in the sanctuary. Place it now, or keep caring and decorate later.
+            </p>
+            <div className="mt-5 grid gap-2">
+              <Link href="/app/sanctuary" className={buttonClass("primary", "md")} data-testid="gift-place">
+                Place it in my sanctuary
+              </Link>
+              <button type="button" className={buttonClass("ghost", "md")} onClick={showNextModal} data-autofocus>
+                Later
+              </button>
+            </div>
+          </>
+        )}
+      </Dialog>
     </div>
   );
 }
@@ -374,12 +379,13 @@ function NameEditor({ id, name, canonical, onSaved }: { id: string; name: string
       className="flex items-center gap-1"
       onSubmit={async (e) => {
         e.preventDefault();
-        const res = await renameAdoption(id, value);
-        if (res.status === "ok") {
+        const res = await tryAction(() => renameAdoption(id, value));
+        if (!res) setError(OFFLINE_MESSAGE);
+        else if (res.status === "ok") {
           onSaved((res as { nickname?: string | null }).nickname ?? null);
           setEditing(false);
           setError(null);
-        } else setError("Max 30 characters");
+        } else setError("Nicknames can be up to 30 characters.");
       }}
     >
       <label htmlFor="nick" className="sr-only">Nickname</label>

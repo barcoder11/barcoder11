@@ -12,13 +12,23 @@ import { levelProgress, phaseLabel } from "@/lib/game";
 
 export const metadata: Metadata = { title: "My animals" };
 
+/** Time-of-day greeting in the player's own time zone (the server runs in UTC). */
+function greetingFor(timeZone: string) {
+  let hour: number;
+  try {
+    hour = Number(new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", hourCycle: "h23" }).format(new Date()));
+  } catch {
+    hour = new Date().getUTCHours();
+  }
+  return hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+}
+
 export default async function DashboardPage() {
   const [profile, adoptions, catalog, economy, balance] = await Promise.all([getProfile(), listAdoptions(), listCatalogAnimals(), getEconomy(), getWallet()]);
   const adoptedIds = new Set(adoptions.map((a) => a.animal_id));
   const newRescues = catalog.filter((a) => a.status === "published" && !adoptedIds.has(a.id));
   const comingSoon = catalog.filter((a) => a.status === "coming_soon");
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const greeting = greetingFor(profile?.timezone ?? "UTC");
 
   return (
     <div className="grid gap-8">

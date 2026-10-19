@@ -3,6 +3,7 @@ import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
+import { one } from "@/lib/data/db";
 
 export type SessionUser = { id: string; email: string | null };
 
@@ -18,8 +19,7 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
   const user = await getSessionUser();
   if (!user) return null;
   const supabase = await createClient();
-  const { data } = await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle();
-  return (data as Profile | null) ?? null;
+  return one<Profile>(await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle(), "profile");
 });
 
 export async function requireUser(next: string) {

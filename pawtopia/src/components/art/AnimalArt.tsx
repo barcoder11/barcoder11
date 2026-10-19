@@ -1,13 +1,20 @@
 import type { Animal, AnimalAsset, AssetState } from "@/lib/types";
-import { Critter, type PetState } from "./Critter";
+import { Critter, StateEffects, type PetState } from "./Critter";
 
 type AssetMap = Partial<Record<AssetState, AnimalAsset>>;
 
-/** Picks the uploaded asset for a state (falling back to idle/avatar), else placeholder SVG art. */
+/** Picks the uploaded asset for a state (falling back to idle/avatar), else undefined (placeholder art). */
 export function pickAsset(assets: AssetMap, state: PetState): AnimalAsset | undefined {
   return assets[state as AssetState] ?? assets.idle ?? assets.avatar;
 }
 
+/**
+ * Renders a character in an animation state. Official uploaded art is used when
+ * available: the wrapper carries the `pet pet-<state>` classes that drive the
+ * CSS motion (see globals.css `.pet-asset`), and when the state has no
+ * dedicated artwork the reaction effects are layered on top so every action
+ * still reads clearly. Without uploads, the labelled placeholder SVG is shown.
+ */
 export function AnimalArt({
   animal,
   assets,
@@ -22,42 +29,55 @@ export function AnimalArt({
   priority?: boolean;
 }) {
   const asset = pickAsset(assets, state);
-  const stateLabel = state === "idle" ? "" : ` (${state})`;
-  if (asset?.media_kind === "video") {
+  if (!asset) {
+    const stateLabel = state === "idle" ? "" : ` (${state})`;
     return (
-      <video
-        key={asset.id}
-        className={`pet pet-${state} h-full w-full object-contain ${className}`}
-        src={asset.public_url}
-        autoPlay
-        muted
-        loop
-        playsInline
-        aria-label={asset.alt_text}
+      <Critter
+        variant={animal.placeholder_style}
+        colors={animal.colors}
+        state={state}
+        title={`${animal.name} the ${animal.species.toLowerCase()}${stateLabel} — placeholder illustration`}
+        className={`h-full w-full drop-shadow-lg ${className}`}
       />
     );
   }
-  if (asset) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        key={asset.id}
-        src={asset.public_url}
-        alt={asset.alt_text}
-        className={`pet pet-${state} pet-body-group h-full w-full object-contain drop-shadow-xl ${className}`}
-        loading={priority ? "eager" : "lazy"}
-        decoding="async"
-      />
-    );
-  }
+
+  const hasStateArt = Boolean(assets[state as AssetState]);
   return (
-    <Critter
-      variant={animal.placeholder_style}
-      colors={animal.colors}
-      state={state}
-      title={`${animal.name} the ${animal.species.toLowerCase()}${stateLabel} — placeholder illustration`}
-      className={`h-full w-full drop-shadow-lg ${className}`}
-    />
+    <div className={`pet pet-${state} relative h-full w-full ${className}`} data-art="uploaded">
+      {asset.media_kind === "video" ? (
+        <video
+          key={asset.id}
+          className="pet-asset h-full w-full object-contain"
+          src={asset.public_url}
+          autoPlay
+          muted
+          loop
+          playsInline
+          aria-label={asset.alt_text}
+        />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={asset.id}
+          src={asset.public_url}
+          alt={asset.alt_text}
+          className="pet-asset h-full w-full object-contain drop-shadow-xl"
+          loading={priority ? "eager" : "lazy"}
+          decoding="async"
+        />
+      )}
+      {!hasStateArt && state !== "idle" && (
+        <svg
+          viewBox="0 0 200 200"
+          className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
+          aria-hidden="true"
+          data-testid="pet-effects"
+        >
+          <StateEffects state={state} />
+        </svg>
+      )}
+    </div>
   );
 }
 

@@ -115,6 +115,27 @@ body {
   transform-origin: 50% 90%;
 }
 
+/* Uploaded official art: the same motion vocabulary, anchored at the feet. */
+.pet .pet-asset {
+  transform-origin: 50% 100%;
+}
+.pet-idle .pet-asset {
+  animation: breathe 3.2s ease-in-out infinite;
+}
+.pet-happy .pet-asset,
+.pet-comforted .pet-asset {
+  animation: hop 0.9s ease-in-out 2;
+}
+.pet-playing .pet-asset {
+  animation: wiggle 0.5s ease-in-out 4;
+}
+.pet-snacking .pet-asset {
+  animation: chew 0.35s ease-in-out 6;
+}
+.pet-resting .pet-asset {
+  animation: breathe 4.8s ease-in-out infinite;
+}
+
 .float-up {
   animation: float-up 1.6s ease-out forwards;
 }

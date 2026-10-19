@@ -2,15 +2,19 @@ import Link from "next/link";
 import { StatusBadge } from "@/components/admin/fields";
 import { ButtonLink, Card } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
+import { many } from "@/lib/data/db";
 
 type Row = { id: string; slug: string; title: string; status: string; season: number | null; episode: number | null; animals: { name: string } | null };
 
 export default async function AdminRescues() {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("rescue_stories")
-    .select("id, slug, title, status, season, episode, animals(name)")
-    .order("created_at", { ascending: false });
+  const rows = many<Row>(
+    await supabase
+      .from("rescue_stories")
+      .select("id, slug, title, status, season, episode, animals(name)")
+      .order("created_at", { ascending: false }),
+    "admin rescues",
+  );
   return (
     <div className="grid gap-4">
       <div className="flex items-center justify-between">
@@ -18,7 +22,7 @@ export default async function AdminRescues() {
         <ButtonLink href="/admin/rescues/new" size="sm">+ New episode</ButtonLink>
       </div>
       <div className="grid gap-3">
-        {((data ?? []) as unknown as Row[]).map((r) => (
+        {rows.map((r) => (
           <Link key={r.id} href={`/admin/rescues/${r.id}`}>
             <Card className="flex items-center justify-between gap-3 p-4 hover:bg-cream-200">
               <div>
@@ -29,7 +33,7 @@ export default async function AdminRescues() {
             </Card>
           </Link>
         ))}
-        {(data ?? []).length === 0 && <p className="text-ink-soft">No episodes yet.</p>}
+        {rows.length === 0 && <p className="text-ink-soft">No episodes yet.</p>}
       </div>
     </div>
   );

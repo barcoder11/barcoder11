@@ -74,3 +74,44 @@ test("landing visits are recorded through the server; the maintenance job requir
   expect(ok.status()).toBe(200);
   expect(await ok.json()).toMatchObject({ ok: true });
 });
+
+test("chapter unlock popup is an accessible dialog that Escape closes", async ({ page }) => {
+  await setLaunchMode("open");
+  const email = newEmail("dialog");
+  await page.goto("/auth?next=/animals/maple/adopt");
+  await signInWithCode(page, email);
+  await completeOnboarding(page);
+  await page.getByTestId("confirm-adopt").click();
+  await expect(page).toHaveURL(/\/app\/animals\//);
+  // Put Maple just below the 25 XP threshold for chapter 2.
+  await pool.query(
+    `update public.user_animals ua set bond_xp = 22 from auth.users u where u.id = ua.user_id and u.email = $1`,
+    [email],
+  );
+  await page.reload();
+  await page.getByTestId("care-comfort").click();
+  const dialog = page.getByRole("dialog", { name: /Chapter 2: The First Sniff/ });
+  await expect(dialog).toBeVisible({ timeout: 8000 });
+  await expect(dialog.getByRole("button", { name: "Keep playing" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+});
+
+test("a quick second tap never swallows a pending chapter popup", async ({ page }) => {
+  await setLaunchMode("open");
+  const email = newEmail("queue");
+  await page.goto("/auth?next=/animals/maple/adopt");
+  await signInWithCode(page, email);
+  await completeOnboarding(page);
+  await page.getByTestId("confirm-adopt").click();
+  await expect(page).toHaveURL(/\/app\/animals\//);
+  await pool.query(
+    `update public.user_animals ua set bond_xp = 22 from auth.users u where u.id = ua.user_id and u.email = $1`,
+    [email],
+  );
+  await page.reload();
+  await page.getByTestId("care-comfort").click(); // unlocks chapter 2
+  await expect(page.getByTestId("acorn-balance")).toHaveAttribute("aria-label", "55 acorns");
+  await page.getByTestId("care-snack").click(); // before the first popup had a chance to open
+  await expect(page.getByRole("dialog", { name: /Chapter 2: The First Sniff/ })).toBeVisible({ timeout: 8000 });
+});

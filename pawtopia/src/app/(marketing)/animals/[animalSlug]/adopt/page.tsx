@@ -5,7 +5,7 @@ import { SceneBackdrop } from "@/components/art/SceneBackdrop";
 import { WaitlistForm } from "@/components/marketing/WaitlistForm";
 import { Card, FictionDisclosure, Notice } from "@/components/ui";
 import { getIsEditor, requirePlayer } from "@/lib/auth";
-import { getMyAdoptionId } from "@/lib/data/adoption-status";
+import { getMyAdoptionId } from "@/lib/data/player";
 import { assetMap, getAnimalBySlug, getEconomy, getLaunchSettings } from "@/lib/data/catalog";
 import { AdoptForm } from "./AdoptForm";
 

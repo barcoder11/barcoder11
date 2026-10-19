@@ -1,6 +1,7 @@
 "use client";
 import { useActionState, type ReactNode } from "react";
 import { Button, Notice } from "@/components/ui";
+import { guardAction, OFFLINE_MESSAGE } from "@/lib/safe-action";
 
 type State = { ok?: boolean; error?: string; message?: string };
 
@@ -18,7 +19,10 @@ export function ActionForm({
   className?: string;
   submitVariant?: "primary" | "honey" | "light" | "danger";
 }) {
-  const [state, formAction, pending] = useActionState<State, FormData>(action, {});
+  const [state, formAction, pending] = useActionState<State, FormData>(
+    guardAction(action, () => ({ error: OFFLINE_MESSAGE })),
+    {},
+  );
   return (
     <form action={formAction} className={`grid gap-4 ${className}`}>
       {children}
@@ -40,12 +44,15 @@ export function ActionButton({
   variant = "light",
   confirm,
 }: {
-  action: () => Promise<{ error?: string } | void>;
+  action: () => Promise<{ error?: string; ok?: boolean } | void>;
   label: string;
   variant?: "primary" | "honey" | "light" | "danger";
   confirm?: string;
 }) {
-  const [state, run, pending] = useActionState<{ error?: string }, FormData>(async () => (await action()) ?? {}, {});
+  const [state, run, pending] = useActionState<{ error?: string }, FormData>(
+    guardAction(async () => (await action()) ?? {}, () => ({ error: OFFLINE_MESSAGE })),
+    {},
+  );
   return (
     <form
       action={run}

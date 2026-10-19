@@ -36,7 +36,7 @@ export function AnimalCard({ animal, href }: { animal: Animal; href?: string }) 
       </div>
     </div>
   );
-  if (comingSoon) return <div aria-label={`${animal.name}, coming soon`}>{body}</div>;
+  if (comingSoon) return body;
   return (
     <Link href={href ?? `/animals/${animal.slug}`} className="block h-full rounded-[1.75rem]">
       {body}

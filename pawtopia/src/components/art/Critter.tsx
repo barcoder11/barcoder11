@@ -186,33 +186,7 @@ export function CritterSvg({ variant, colors, state = "idle", title, className =
         </g>
       </g>
 
-      {/* ---------------- state overlays */}
-      {(state === "comforted" || state === "happy") && (
-        <g fill="#E8577A">
-          <Heart x={56} y={52} delay="0s" />
-          <Heart x={142} y={44} delay="0.35s" />
-          <Heart x={100} y={30} delay="0.7s" />
-        </g>
-      )}
-      {state === "resting" && (
-        <g fill="#2F6B58" fontFamily="var(--font-display)" fontWeight="700">
-          <text x="140" y="56" fontSize="18" className="zzz">z</text>
-          <text x="152" y="40" fontSize="14" className="zzz" style={{ animationDelay: "0.8s" }}>z</text>
-          <text x="160" y="26" fontSize="11" className="zzz" style={{ animationDelay: "1.6s" }}>z</text>
-        </g>
-      )}
-      {state === "playing" && (
-        <g className="ball-bounce">
-          <circle cx="160" cy="176" r="12" fill="#E8577A" />
-          <path d="M148 176 q12 -8 24 0" stroke="#FFF8EC" strokeWidth="3" fill="none" />
-        </g>
-      )}
-      {state === "snacking" && (
-        <g fill="#EDBC78">
-          <circle cx="62" cy="70" r="3" className="sparkle" />
-          <circle cx="142" cy="64" r="2.5" className="sparkle" style={{ animationDelay: "0.6s" }} />
-        </g>
-      )}
+      <StateEffects state={state} />
     </svg>
   );
 }
@@ -269,6 +243,44 @@ function Ears({ variant, c }: { variant: PlaceholderStyle; c: Required<AnimalCol
         </>
       );
   }
+}
+
+/**
+ * Reaction effects (hearts, sleepy z's, ball, sparkles) in the 200×200 pet
+ * coordinate space. Used inside the placeholder art, and layered over uploaded
+ * art when a state has no dedicated artwork.
+ */
+export function StateEffects({ state }: { state: PetState }) {
+  return (
+    <>
+      {(state === "comforted" || state === "happy") && (
+        <g fill="#E8577A">
+          <Heart x={56} y={52} delay="0s" />
+          <Heart x={142} y={44} delay="0.35s" />
+          <Heart x={100} y={30} delay="0.7s" />
+        </g>
+      )}
+      {state === "resting" && (
+        <g fill="#2F6B58" fontFamily="var(--font-display)" fontWeight="700">
+          <text x="140" y="56" fontSize="18" className="zzz">z</text>
+          <text x="152" y="40" fontSize="14" className="zzz" style={{ animationDelay: "0.8s" }}>z</text>
+          <text x="160" y="26" fontSize="11" className="zzz" style={{ animationDelay: "1.6s" }}>z</text>
+        </g>
+      )}
+      {state === "playing" && (
+        <g className="ball-bounce">
+          <circle cx="160" cy="176" r="12" fill="#E8577A" />
+          <path d="M148 176 q12 -8 24 0" stroke="#FFF8EC" strokeWidth="3" fill="none" />
+        </g>
+      )}
+      {state === "snacking" && (
+        <g fill="#EDBC78">
+          <circle cx="62" cy="70" r="3" className="sparkle" />
+          <circle cx="142" cy="64" r="2.5" className="sparkle" style={{ animationDelay: "0.6s" }} />
+        </g>
+      )}
+    </>
+  );
 }
 
 function Heart({ x, y, delay }: { x: number; y: number; delay: string }) {

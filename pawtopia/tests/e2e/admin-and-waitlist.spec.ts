@@ -55,6 +55,17 @@ test("admin publishes a brand-new animal + rescue and gets share links, without 
   await expect(ap.getByTestId("animal-name")).toHaveText("Hazel");
   await expect(ap.getByRole("img", { name: "Hazel the hedgehog curled in leaves" })).toBeVisible();
   await anon.close();
+
+  // Uploaded art animates like the placeholder art, and reactions still show effects.
+  await page.goto(`/animals/${slug}/adopt`);
+  await page.getByTestId("confirm-adopt").click();
+  await expect(page).toHaveURL(/\/app\/animals\//);
+  const art = page.getByTestId("pet").locator("img");
+  await expect(art).toHaveAttribute("alt", "Hazel the hedgehog curled in leaves");
+  expect(await art.evaluate((el) => getComputedStyle(el).animationName)).toBe("breathe");
+  await page.getByTestId("care-play").click();
+  await expect.poll(() => art.evaluate((el) => getComputedStyle(el).animationName)).toBe("wiggle");
+  await expect(page.getByTestId("pet-effects")).toBeAttached();
 });
 
 test("waitlist mode: no premature play, verified email, neutral duplicates", async ({ page }) => {

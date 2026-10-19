@@ -5,11 +5,14 @@ import { ButtonLink, Card } from "@/components/ui";
 import { assetMap } from "@/lib/data/catalog";
 import { createClient } from "@/lib/supabase/server";
 import type { Animal } from "@/lib/types";
+import { many } from "@/lib/data/db";
 
 export default async function AdminAnimals() {
   const supabase = await createClient();
-  const { data } = await supabase.from("animals").select("*, animal_assets(*), user_animals(count)").order("sort_order");
-  const animals = (data ?? []) as (Animal & { user_animals: { count: number }[] })[];
+  const animals = many<Animal & { user_animals: { count: number }[] }>(
+    await supabase.from("animals").select("*, animal_assets(*), user_animals(count)").order("sort_order"),
+    "admin animals",
+  );
   return (
     <div className="grid gap-4">
       <div className="flex items-center justify-between">

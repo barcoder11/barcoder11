@@ -56,3 +56,10 @@ export const DEFAULT_ECONOMY: Economy = {
   first_care_gift_decor: "soft-blanket",
   level_thresholds: [0, 15, 40, 75, 120, 180, 250, 330, 420, 520],
 };
+
+/** Swaps an animal's canonical name for the player's nickname (whole words only). */
+export function personalize(text: string, canonical: string, nickname: string) {
+  if (!nickname || canonical === nickname) return text;
+  const escaped = canonical.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return text.replace(new RegExp(`\\b${escaped}\\b`, "g"), nickname);
+}

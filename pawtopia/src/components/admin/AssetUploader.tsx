@@ -5,6 +5,7 @@ import { registerAsset } from "@/app/admin/actions";
 import { Button, Notice } from "@/components/ui";
 import { getBrowserClient } from "@/lib/supabase/client";
 import { MEDIA_BUCKET } from "@/lib/env";
+import { OFFLINE_MESSAGE, tryAction } from "@/lib/safe-action";
 import { adminInput, Field } from "./fields";
 
 const STATES = [
@@ -73,7 +74,8 @@ export function AssetUploader({ animalId, animalSlug }: { animalId: string; anim
       setBusy(false);
       return setMsg({ tone: "error", text: `Upload failed: ${error.message}` });
     }
-    const res = await registerAsset({
+    const res = (await tryAction(() =>
+      registerAsset({
       animalId,
       state: state as (typeof STATES)[number][0],
       path,
@@ -82,11 +84,16 @@ export function AssetUploader({ animalId, animalSlug }: { animalId: string; anim
       width,
       height,
       alt,
-      credits: String(form.get("credits") ?? ""),
-      notes: String(form.get("notes") ?? ""),
-    });
+        credits: String(form.get("credits") ?? ""),
+        notes: String(form.get("notes") ?? ""),
+      }),
+    )) ?? { error: OFFLINE_MESSAGE };
     setBusy(false);
-    if (res.error) return setMsg({ tone: "error", text: res.error });
+    if (res.error) {
+      // Don't leave an unreferenced file behind in storage.
+      await supabase.storage.from(MEDIA_BUCKET).remove([path]);
+      return setMsg({ tone: "error", text: res.error });
+    }
     setMsg({ tone: "success", text: res.message ?? "Uploaded." });
     formEl.reset();
     router.refresh();

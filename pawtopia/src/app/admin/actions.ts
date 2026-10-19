@@ -9,9 +9,11 @@ import type { AssetState } from "@/lib/types";
 
 export type FormState = { ok?: boolean; error?: string; message?: string };
 
+const FORBIDDEN = { error: "Your account doesn't have permission to do that." };
+
+/** Supabase client for content editors, or null (RLS enforces the same rule in the database). */
 async function editorClient() {
-  if (!(await getIsEditor())) throw new Error("forbidden");
-  return createClient();
+  return (await getIsEditor()) ? createClient() : null;
 }
 
 const slug = z.string().trim().toLowerCase().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Use lowercase letters, numbers and dashes");
@@ -80,6 +82,7 @@ export async function createAnimal(_prev: FormState, form: FormData): Promise<Fo
   const parsed = animalSchema.safeParse(formObject(form));
   if (!parsed.success) return { error: firstError(parsed.error) };
   const supabase = await editorClient();
+  if (!supabase) return FORBIDDEN;
   const { data, error } = await supabase.from("animals").insert({ ...animalRow(parsed.data), status: "draft" }).select("id").single();
   if (error) return { error: error.code === "23505" ? "That slug is already taken." : error.message };
   redirect(`/admin/animals/${data.id}?created=1`);
@@ -89,6 +92,7 @@ export async function updateAnimal(id: string, _prev: FormState, form: FormData)
   const parsed = animalSchema.safeParse(formObject(form));
   if (!parsed.success) return { error: firstError(parsed.error) };
   const supabase = await editorClient();
+  if (!supabase) return FORBIDDEN;
   const { error } = await supabase.from("animals").update(animalRow(parsed.data)).eq("id", id);
   if (error) return { error: error.code === "23505" ? "That slug is already taken." : error.message };
   revalidatePath(`/admin/animals/${id}`);
@@ -97,6 +101,7 @@ export async function updateAnimal(id: string, _prev: FormState, form: FormData)
 
 export async function setAnimalStatus(id: string, status: "draft" | "coming_soon" | "published" | "archived") {
   const supabase = await editorClient();
+  if (!supabase) return FORBIDDEN;
   const { error } = await supabase.from("animals").update({ status }).eq("id", id);
   revalidatePath(`/admin/animals/${id}`);
   revalidatePath("/admin/animals");
@@ -105,6 +110,7 @@ export async function setAnimalStatus(id: string, status: "draft" | "coming_soon
 
 export async function deleteDraftAnimal(id: string) {
   const supabase = await editorClient();
+  if (!supabase) return FORBIDDEN;
   const { data, error } = await supabase.from("animals").delete().eq("id", id).eq("status", "draft").select("id");
   if (error || !data?.length) return { error: "Only drafts without rescue episodes or adoptions can be deleted. Archive instead." };
   redirect("/admin/animals");
@@ -123,6 +129,7 @@ export async function saveChapter(animalId: string, chapterId: string | null, _p
   const parsed = chapterSchema.safeParse(formObject(form));
   if (!parsed.success) return { error: firstError(parsed.error) };
   const supabase = await editorClient();
+  if (!supabase) return FORBIDDEN;
   const res = chapterId
     ? await supabase.from("story_chapters").update(parsed.data).eq("id", chapterId)
     : await supabase.from("story_chapters").insert({ ...parsed.data, animal_id: animalId });
@@ -133,6 +140,7 @@ export async function saveChapter(animalId: string, chapterId: string | null, _p
 
 export async function deleteChapter(animalId: string, chapterId: string) {
   const supabase = await editorClient();
+  if (!supabase) return FORBIDDEN;
   await supabase.from("story_chapters").delete().eq("id", chapterId);
   revalidatePath(`/admin/animals/${animalId}`);
 }
@@ -160,6 +168,7 @@ export async function registerAsset(input: z.input<typeof assetSchema>): Promise
   const d = parsed.data;
   if (IMAGE_TYPES.includes(d.mime) && d.size > 10 * 1024 * 1024) return { error: "Images must be 10 MB or smaller." };
   const supabase = await editorClient();
+  if (!supabase) return FORBIDDEN;
   const user = await getSessionUser();
 
   const { data: animal } = await supabase.from("animals").select("id, slug").eq("id", d.animalId).single();
@@ -197,6 +206,7 @@ export async function registerAsset(input: z.input<typeof assetSchema>): Promise
 
 export async function setAssetActive(assetId: string, active: boolean) {
   const supabase = await editorClient();
+  if (!supabase) return FORBIDDEN;
   const { data: asset } = await supabase.from("animal_assets").select("animal_id, state").eq("id", assetId).single();
   if (!asset) return { error: "Not found" };
   if (active) {
@@ -210,6 +220,7 @@ export async function setAssetActive(assetId: string, active: boolean) {
 
 export async function deleteAsset(assetId: string) {
   const supabase = await editorClient();
+  if (!supabase) return FORBIDDEN;
   const { data: asset } = await supabase.from("animal_assets").select("animal_id, storage_path").eq("id", assetId).single();
   if (!asset) return { error: "Not found" };
   await supabase.storage.from(MEDIA_BUCKET).remove([asset.storage_path]);
@@ -225,6 +236,7 @@ export async function updateAssetText(assetId: string, _prev: FormState, form: F
     .safeParse(formObject(form));
   if (!parsed.success) return { error: "Alt text must be 3–300 characters." };
   const supabase = await editorClient();
+  if (!supabase) return FORBIDDEN;
   const { error } = await supabase
     .from("animal_assets")
     .update({ alt_text: parsed.data.alt, credits: parsed.data.credits || null })
@@ -265,6 +277,7 @@ export async function createRescue(_prev: FormState, form: FormData): Promise<Fo
   const parsed = rescueSchema.safeParse(formObject(form));
   if (!parsed.success) return { error: firstError(parsed.error) };
   const supabase = await editorClient();
+  if (!supabase) return FORBIDDEN;
   const { data, error } = await supabase.from("rescue_stories").insert({ ...rescueRow(parsed.data), status: "draft" }).select("id").single();
   if (error) return { error: error.code === "23505" ? "That slug is already taken." : error.message };
   redirect(`/admin/rescues/${data.id}?created=1`);
@@ -274,6 +287,7 @@ export async function updateRescue(id: string, _prev: FormState, form: FormData)
   const parsed = rescueSchema.safeParse(formObject(form));
   if (!parsed.success) return { error: firstError(parsed.error) };
   const supabase = await editorClient();
+  if (!supabase) return FORBIDDEN;
   const { error } = await supabase.from("rescue_stories").update(rescueRow(parsed.data)).eq("id", id);
   if (error) return { error: error.code === "23505" ? "That slug is already taken." : error.message };
   revalidatePath(`/admin/rescues/${id}`);
@@ -282,6 +296,7 @@ export async function updateRescue(id: string, _prev: FormState, form: FormData)
 
 export async function publishRescue(id: string) {
   const supabase = await editorClient();
+  if (!supabase) return FORBIDDEN;
   const { data, error } = await supabase.rpc("admin_publish_rescue", { p_rescue_id: id });
   revalidatePath(`/admin/rescues/${id}`);
   if (error) return { error: error.message };
@@ -292,6 +307,7 @@ export async function publishRescue(id: string) {
 
 export async function setRescueStatus(id: string, status: "draft" | "archived") {
   const supabase = await editorClient();
+  if (!supabase) return FORBIDDEN;
   const { error } = await supabase.from("rescue_stories").update({ status }).eq("id", id);
   revalidatePath(`/admin/rescues/${id}`);
   return error ? { error: error.message } : { ok: true };

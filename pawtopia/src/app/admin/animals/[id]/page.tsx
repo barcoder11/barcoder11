@@ -14,6 +14,7 @@ import { assetMap } from "@/lib/data/catalog";
 import { PHASES } from "@/lib/game";
 import { createClient } from "@/lib/supabase/server";
 import type { Animal, AnimalAsset, Chapter, RescueStory } from "@/lib/types";
+import { many, one } from "@/lib/data/db";
 
 const REQUIRED_STATES = ["idle", "happy", "playing", "resting", "snacking"] as const;
 
@@ -21,18 +22,21 @@ export default async function EditAnimal({ params, searchParams }: PageProps<"/a
   const { id } = await params;
   const sp = await searchParams;
   const supabase = await createClient();
-  const [{ data }, { data: habitats }, { data: chapters }, { data: rescues }] = await Promise.all([
+  const [animalResult, habitatsResult, chaptersResult, rescuesResult] = await Promise.all([
     supabase.from("animals").select("*, animal_assets(*)").eq("id", id).maybeSingle(),
     supabase.from("habitats").select("slug, name").order("name"),
     supabase.from("story_chapters").select("*").eq("animal_id", id).order("ordinal"),
     supabase.from("rescue_stories").select("id, slug, title, status").eq("animal_id", id),
   ]);
-  if (!data) notFound();
-  const animal = data as Animal;
+  const animal = one<Animal>(animalResult, "admin animal");
+  if (!animal) notFound();
+  const habitats = many<{ slug: string; name: string }>(habitatsResult, "habitats");
+  const chapters = many<Chapter>(chaptersResult, "chapters");
+  const rescues = many<RescueStory>(rescuesResult, "animal rescues");
   const assets = (animal.animal_assets ?? []) as AnimalAsset[];
   const active = assetMap(animal);
   const missing = REQUIRED_STATES.filter((s) => !active[s]);
-  const nextOrdinal = ((chapters ?? []) as Chapter[]).reduce((m, c) => Math.max(m, c.ordinal), 0) + 1;
+  const nextOrdinal = chapters.reduce((m, c) => Math.max(m, c.ordinal), 0) + 1;
 
   return (
     <div className="grid gap-6">
@@ -70,7 +74,7 @@ export default async function EditAnimal({ params, searchParams }: PageProps<"/a
         <Card>
           <h2 className="mb-4 font-display text-xl font-bold">1 · Character details</h2>
           <ActionForm action={updateAnimal.bind(null, id)}>
-            <AnimalFields animal={animal} habitats={habitats ?? []} />
+            <AnimalFields animal={animal} habitats={habitats} />
           </ActionForm>
         </Card>
         <div className="grid content-start gap-4">
@@ -86,7 +90,7 @@ export default async function EditAnimal({ params, searchParams }: PageProps<"/a
           <Card>
             <h3 className="font-display text-lg font-bold">Rescue episodes</h3>
             <ul className="mt-2 grid gap-1 text-sm">
-              {((rescues ?? []) as RescueStory[]).map((r) => (
+              {rescues.map((r) => (
                 <li key={r.id} className="flex items-center justify-between gap-2">
                   <Link href={`/admin/rescues/${r.id}`} className="font-bold text-forest hover:underline">{r.title}</Link>
                   <StatusBadge status={r.status} />
@@ -132,7 +136,7 @@ export default async function EditAnimal({ params, searchParams }: PageProps<"/a
       <Card>
         <h2 className="mb-4 font-display text-xl font-bold">3 · Recovery chapters</h2>
         <div className="grid gap-4">
-          {((chapters ?? []) as Chapter[]).map((c) => (
+          {chapters.map((c) => (
             <details key={c.id} className="rounded-2xl bg-cream p-4">
               <summary className="cursor-pointer font-bold">
                 Chapter {c.ordinal}: {c.title} <span className="font-normal text-ink-soft">· {c.phase} · unlocks at {c.unlock_bond_xp} XP</span>

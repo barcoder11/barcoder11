@@ -5,6 +5,10 @@ import { ANON_COOKIE, FIRST_TOUCH_COOKIE, encodeFirstTouch, firstTouchFromUrl, i
 
 const PROTECTED = ["/app", "/admin", "/onboarding"];
 
+function isProtected(pathname: string) {
+  return PROTECTED.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
   let response = NextResponse.next({ request });
@@ -31,7 +35,7 @@ export async function proxy(request: NextRequest) {
     userId = (data?.claims?.sub as string | undefined) ?? null;
   }
 
-  if (!userId && PROTECTED.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+  if (!userId && isProtected(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth";
     url.search = `?next=${encodeURIComponent(pathname + request.nextUrl.search)}`;
@@ -66,7 +70,7 @@ export async function proxy(request: NextRequest) {
   for (const c of pendingCookies) response.cookies.set(c.name, c.value, c.options);
   for (const [k, v] of Object.entries(pendingHeaders)) response.headers.set(k, v);
   // Personalised responses must never be shared by a CDN.
-  if (userId || PROTECTED.some((p) => pathname.startsWith(p))) {
+  if (userId || isProtected(pathname)) {
     response.headers.set("Cache-Control", "private, no-store");
   }
   return response;

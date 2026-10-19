@@ -1,12 +1,13 @@
 "use server";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decodeFirstTouch, FIRST_TOUCH_COOKIE } from "@/lib/attribution";
 import { emailConfigured, sendEmail } from "@/lib/email";
 import { env } from "@/lib/env";
 import { clientKey } from "@/lib/request";
-import { newToken } from "@/lib/tokens";
+import { hashToken, newToken } from "@/lib/tokens";
 
 export type WaitlistState = { status: "idle" | "ok" | "error"; message?: string };
 
@@ -71,8 +72,6 @@ export async function unsubscribeWaitlist(form: FormData) {
   const remove = form.get("delete") === "1";
   const admin = createAdminClient();
   if (!admin || token.length < 20 || token.length > 100) return;
-  const { hashToken } = await import("@/lib/tokens");
   await admin.rpc("waitlist_unsubscribe", { p_unsubscribe_hash: hashToken(token), p_delete: remove });
-  const { redirect } = await import("next/navigation");
   redirect(`/waitlist/unsubscribe?done=${remove ? "deleted" : "unsubscribed"}`);
 }

@@ -3,10 +3,14 @@ import { AnimalFields } from "@/components/admin/AnimalFields";
 import { Card } from "@/components/ui";
 import { createAnimal } from "../../actions";
 import { createClient } from "@/lib/supabase/server";
+import { many } from "@/lib/data/db";
 
 export default async function NewAnimal() {
   const supabase = await createClient();
-  const { data: habitats } = await supabase.from("habitats").select("slug, name").order("name");
+  const habitats = many<{ slug: string; name: string }>(
+    await supabase.from("habitats").select("slug, name").order("name"),
+    "habitats",
+  );
   return (
     <div className="grid gap-4">
       <h1 className="font-display text-3xl font-bold">New animal</h1>
@@ -19,7 +23,7 @@ export default async function NewAnimal() {
       </ol>
       <Card>
         <ActionForm action={createAnimal} submitLabel="Create draft">
-          <AnimalFields habitats={habitats ?? []} />
+          <AnimalFields habitats={habitats} />
         </ActionForm>
       </Card>
     </div>

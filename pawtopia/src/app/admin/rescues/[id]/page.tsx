@@ -8,20 +8,24 @@ import { publishRescue, setRescueStatus, updateRescue } from "../../actions";
 import { env } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import type { AnimalAsset, RescueStory } from "@/lib/types";
+import { many, one } from "@/lib/data/db";
 
 export default async function EditRescue({ params, searchParams }: PageProps<"/admin/rescues/[id]">) {
   const { id } = await params;
   const sp = await searchParams;
   const supabase = await createClient();
-  const { data } = await supabase.from("rescue_stories").select("*").eq("id", id).maybeSingle();
-  if (!data) notFound();
-  const rescue = data as RescueStory;
-  const [{ data: animals }, { data: assets }, { data: funnel }] = await Promise.all([
+  const rescue = one<RescueStory>(await supabase.from("rescue_stories").select("*").eq("id", id).maybeSingle(), "admin rescue");
+  if (!rescue) notFound();
+  const [animalsResult, assetsResult, funnelResult] = await Promise.all([
     supabase.from("animals").select("id, name, status").order("sort_order"),
     supabase.from("animal_assets").select("*").eq("animal_id", rescue.animal_id),
     supabase.rpc("admin_funnel", { p_since: "2000-01-01T00:00:00Z" }),
   ]);
-  const rows = ((funnel ?? []) as { rescue_id: string | null; source: string; landing_views: number; cta_clicks: number; signups: number; adoptions: number; first_cares: number }[]).filter((r) => r.rescue_id === id);
+  const animals = many<{ id: string; name: string; status: string }>(animalsResult, "animals");
+  const assets = many<AnimalAsset>(assetsResult, "rescue assets");
+  // The funnel is admin-only; editors simply don't see the numbers.
+  type FunnelRow = { rescue_id: string | null; source: string; landing_views: number; cta_clicks: number; signups: number; adoptions: number; first_cares: number };
+  const rows = (funnelResult.error ? [] : ((funnelResult.data ?? []) as FunnelRow[])).filter((r) => r.rescue_id === id);
   const totals = rows.reduce(
     (t, r) => ({
       views: t.views + Number(r.landing_views), cta: t.cta + Number(r.cta_clicks), signups: t.signups + Number(r.signups),
@@ -83,7 +87,7 @@ export default async function EditRescue({ params, searchParams }: PageProps<"/a
       <Card>
         <h2 className="mb-4 font-display text-xl font-bold">Episode details</h2>
         <ActionForm action={updateRescue.bind(null, id)}>
-          <RescueFields rescue={rescue} animals={animals ?? []} assets={(assets ?? []) as AnimalAsset[]} />
+          <RescueFields rescue={rescue} animals={animals} assets={assets} />
         </ActionForm>
       </Card>
     </div>
