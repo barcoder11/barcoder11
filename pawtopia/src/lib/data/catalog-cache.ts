@@ -4,6 +4,7 @@ import { unstable_cache } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSessionUser } from "@/lib/auth";
 import type { Database } from "@/lib/database";
+import { isSupabaseConfigured } from "@/lib/env";
 import { log } from "@/lib/log";
 import { createPublicClient } from "@/lib/supabase/public";
 import { createClient } from "@/lib/supabase/server";
@@ -34,9 +35,12 @@ const catalogVersion = cache(async (): Promise<number | null> => {
 /**
  * A catalog query that anonymous visitors share (cached per catalog version and
  * arguments) while signed-in visitors run it live with their own session.
+ * `empty` is returned before Supabase is configured (the app shows its setup
+ * notice then, but layouts and metadata still render on the server).
  */
 export function catalogRead<Args extends unknown[], Result>(
   name: string,
+  empty: Result,
   query: (db: Db, ...args: Args) => Promise<Result>,
 ) {
   const shared = unstable_cache(
@@ -45,6 +49,7 @@ export function catalogRead<Args extends unknown[], Result>(
     { revalidate: 3600 }, // safety net only: a new version already means a new cache key
   );
   return cache(async (...args: Args): Promise<Result> => {
+    if (!isSupabaseConfigured()) return empty;
     if (await getSessionUser()) return query(await createClient(), ...args);
     const version = await catalogVersion();
     return version === null ? query(createPublicClient(), ...args) : shared(version, ...args);

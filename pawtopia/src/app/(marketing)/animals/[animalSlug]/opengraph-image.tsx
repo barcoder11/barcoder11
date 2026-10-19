@@ -1,3 +1,4 @@
+import { isSupabaseConfigured } from "@/lib/env";
 import { animalCard, OG_SIZE } from "@/lib/og";
 import { createPublicClient } from "@/lib/supabase/public";
 import type { Animal, AnimalAsset } from "@/lib/types";
@@ -9,12 +10,15 @@ export const revalidate = 3600;
 
 export default async function Image({ params }: { params: Promise<{ animalSlug: string }> }) {
   const { animalSlug } = await params;
-  const { data } = await createPublicClient()
-    .from("animals")
-    .select("name, species, placeholder_style, colors, tagline, animal_assets(*)")
-    .eq("slug", animalSlug)
-    .in("status", ["published", "coming_soon"])
-    .maybeSingle();
+  // Before Supabase is configured every link shows the generic card.
+  const { data } = isSupabaseConfigured()
+    ? await createPublicClient()
+        .from("animals")
+        .select("name, species, placeholder_style, colors, tagline, animal_assets(*)")
+        .eq("slug", animalSlug)
+        .in("status", ["published", "coming_soon"])
+        .maybeSingle()
+    : { data: null };
   const animal = data as (Animal & { animal_assets: AnimalAsset[] }) | null;
   return animalCard({
     animal: animal ?? {

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // Stand-ins for the session lookup, both Supabase clients and Next's data cache.
 const env = vi.hoisted(() => {
   const state = {
+    configured: true,
     user: null as { id: string } | null,
     version: 1 as number | null, // null: the version can't be read
     store: new Map<string, unknown>(),
@@ -31,6 +32,7 @@ vi.mock("next/cache", () => ({
       return env.state.store.get(key);
     },
 }));
+vi.mock("@/lib/env", () => ({ isSupabaseConfigured: () => env.state.configured }));
 vi.mock("@/lib/auth", () => ({ getSessionUser: async () => env.state.user }));
 vi.mock("@/lib/supabase/public", () => ({ createPublicClient: () => env.publicClient }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ kind: "session" }) }));
@@ -40,11 +42,11 @@ const { catalogRead } = await import("./catalog-cache");
 
 function setup() {
   const query = vi.fn(async (db: unknown, slug: string) => `${(db as { kind: string }).kind}:${slug}`);
-  return { query, read: catalogRead("test", query as never) as (slug: string) => Promise<string> };
+  return { query, read: catalogRead("test", "empty", query as never) as (slug: string) => Promise<string> };
 }
 
 beforeEach(() => {
-  Object.assign(env.state, { user: null, version: 1, warn: [] });
+  Object.assign(env.state, { configured: true, user: null, version: 1, warn: [] });
   env.state.store.clear();
 });
 
@@ -68,6 +70,13 @@ describe("catalogRead", () => {
     expect(await read("maple")).toBe("session:maple");
     expect(query).toHaveBeenCalledTimes(2);
     expect(env.state.store.size).toBe(0);
+  });
+
+  it("returns the empty result without querying before Supabase is configured", async () => {
+    const { query, read } = setup();
+    env.state.configured = false;
+    expect(await read("maple")).toBe("empty");
+    expect(query).not.toHaveBeenCalled();
   });
 
   it("serves uncached public reads, with a warning, if the version can't be read", async () => {

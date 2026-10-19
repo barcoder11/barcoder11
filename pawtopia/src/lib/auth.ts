@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
+import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
 import { one } from "@/lib/data/db";
@@ -9,6 +10,7 @@ type SessionUser = { id: string; email: string | null };
 
 /** Verified current user (JWT validated by Supabase), deduped per request. */
 export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
+  if (!isSupabaseConfigured()) return null;
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
   if (error || !data?.claims?.sub) return null;

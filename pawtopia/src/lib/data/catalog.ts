@@ -13,7 +13,7 @@ import type { Animal, ChapterOutline, Decor, Economy, Habitat, LaunchSettings, R
 const ANIMAL_FIELDS = "*, animal_assets(*)";
 const RESCUE_WITH_ANIMAL = `*, animals(${ANIMAL_FIELDS})` as const;
 
-export const getLaunchSettings = catalogRead("launch", async (db): Promise<LaunchSettings> => {
+export const getLaunchSettings = catalogRead("launch", { mode: "waitlist" }, async (db): Promise<LaunchSettings> => {
   const row = one(await db.from("app_settings").select("value").eq("key", "launch").maybeSingle(), "launch settings");
   const value = (row?.value ?? {}) as Partial<LaunchSettings>;
   return { mode: value.mode === "open" ? "open" : "waitlist", featured_animal_slug: value.featured_animal_slug };
@@ -29,7 +29,7 @@ export const getEconomy = cache(async (): Promise<Economy> => {
 });
 
 /** Published + coming-soon animals (drafts visible to editors are filtered out here). */
-export const listCatalogAnimals = catalogRead("animals", async (db): Promise<Animal[]> => {
+export const listCatalogAnimals = catalogRead("animals", [], async (db): Promise<Animal[]> => {
   const result = await db
     .from("animals")
     .select(ANIMAL_FIELDS)
@@ -39,14 +39,14 @@ export const listCatalogAnimals = catalogRead("animals", async (db): Promise<Ani
   return many(result, "catalog animals") as Animal[];
 });
 
-export const getAnimalBySlug = catalogRead("animal", async (db, slug: string): Promise<Animal | null> => {
+export const getAnimalBySlug = catalogRead("animal", null, async (db, slug: string): Promise<Animal | null> => {
   return one(
     await db.from("animals").select(ANIMAL_FIELDS).eq("slug", slug).maybeSingle(),
     "animal by slug",
   ) as Animal | null;
 });
 
-export const getRescueBySlug = catalogRead("rescue", async (db, slug: string) => {
+export const getRescueBySlug = catalogRead("rescue", null, async (db, slug: string) => {
   const row = one(
     await db.from("rescue_stories").select(RESCUE_WITH_ANIMAL).eq("slug", slug).maybeSingle(),
     "rescue by slug",
@@ -58,6 +58,7 @@ export const getRescueBySlug = catalogRead("rescue", async (db, slug: string) =>
 
 export const listRescuesForAnimal = catalogRead(
   "animal-rescues",
+  [],
   async (db, animalId: string): Promise<RescueStory[]> => {
     const result = await db
       .from("rescue_stories")
@@ -69,7 +70,7 @@ export const listRescuesForAnimal = catalogRead(
   },
 );
 
-export const listPublishedRescues = catalogRead("rescues", async (db) => {
+export const listPublishedRescues = catalogRead("rescues", [], async (db) => {
   const result = await db
     .from("rescue_stories")
     .select(RESCUE_WITH_ANIMAL)
@@ -79,7 +80,7 @@ export const listPublishedRescues = catalogRead("rescues", async (db) => {
   return many(result, "published rescues") as (RescueStory & { animals: Animal })[];
 });
 
-export const getChapterOutline = catalogRead("outline", async (db, animalId: string): Promise<ChapterOutline[]> => {
+export const getChapterOutline = catalogRead("outline", [], async (db, animalId: string): Promise<ChapterOutline[]> => {
   return many(await db.rpc("animal_chapter_outline", { p_animal_id: animalId }), "chapter outline");
 });
 
